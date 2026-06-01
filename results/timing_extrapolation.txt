@@ -1,0 +1,10 @@
+=== Timing extrapolation (MedMNIST, K=3, T=50, E=5) ===
+Measured: FedSafe-Fuse 154 ms/batch | IFCNN 163 ms/batch
+Per round (K*E*batches): 14490 batches
+  FedSafe-Fuse per round: 37.1 min
+  IFCNN baseline per round: 39.4 min
+Full T=50 rounds:
+  FedSafe-Fuse: ~30.9 h
+  IFCNN: ~32.9 h
+Colab Free session limit: ~12h. Idle disconnect: ~90 min.
+VERDICT: Full T=50 does NOT fit one session. Discuss reducing T or splitting across sessions.

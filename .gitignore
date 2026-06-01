@@ -1,0 +1,69 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Data and checkpoints (large, not for git)
+data/
+checkpoints/
+*.npz
+*.pth
+*.pt
+*.h5
+*.ckpt
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.bbl
+*.blg
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.lof
+*.lot
+*.nav
+*.snm
+*.vrb
+paper/main.pdf
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Submission zip + staging (built artifacts; rebuild via scripts/build_submission_zip.py)
+submission.zip
+submission_staging/
+
+# Credentials — NEVER commit (Kaggle API tokens etc.)
+kaggle_token.json
+kaggle.json
+*.pem
+*.key
+.env
+.env.*
+
+# Internal planning/workflow notes (not for the public repo)
+PROGRESS.md
+PROJECT_PLAN.md
+
+# Build artifacts: unzipped submission folders + alt zips
+fedsafe_fuse_submission/
+fedsafe_fuse_submission */
+fedsafe_fuse_submission*.zip

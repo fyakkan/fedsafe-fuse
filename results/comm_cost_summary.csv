@@ -1,0 +1,4 @@
+method,privacy,bytes_per_round,compression_vs_dpsgd
+FedAvg + IFCNN (B2),none,3814800,15.5
+FedAvg + DP-SGD (B1),"DP, σ=0.5",59178012,1.0
+FedSafe + FIPCA (ours),rank-32 projection,384,154109.4
