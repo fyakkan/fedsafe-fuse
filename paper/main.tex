@@ -11,6 +11,8 @@
 \usepackage{booktabs}
 \usepackage[hidelinks]{hyperref}
 \usepackage{url}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, fit, backgrounds}
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -77,7 +79,52 @@ Second, even a fully converged fusion network produces pixel-level outputs that 
 \section{Methodology}
 \label{sec:method}
 
-FedSafe-Fuse consists of four tightly integrated components: a lightweight fusion backbone, FIPCA-protected federated aggregation, region-aware SACP calibration, and inference-time uncertainty mapping.
+FedSafe-Fuse consists of four tightly integrated components: a lightweight fusion backbone, FIPCA-protected federated aggregation, region-aware SACP calibration, and inference-time uncertainty mapping. Figure~\ref{fig:pipeline} summarises the end-to-end pipeline.
+
+\begin{figure}[t]
+\centering
+\begin{tikzpicture}[
+    font=\scriptsize,
+    box/.style={draw, rounded corners, align=center, inner sep=3pt,
+                minimum height=6mm, fill=blue!5},
+    fed/.style={box, fill=green!8},
+    cal/.style={box, fill=orange!8},
+    inf/.style={box, fill=purple!8},
+    arr/.style={-{Latex[length=1.6mm]}, thick},
+    node distance=2.6mm and 4mm,
+]
+% Phase 1: federated training
+\node[fed] (clients) {Clients $1\ldots K$\\(MRI + PET)};
+\node[fed, right=of clients] (local) {Local train\\(encoders +\\Transformer)};
+\node[fed, below=of local] (fipca) {FIPCA\\rank-$d$ projection};
+\node[fed, left=of fipca] (agg) {FedAvg\\aggregation};
+\draw[arr] (clients) -- (local);
+\draw[arr] (local) -- (fipca);
+\draw[arr] (fipca) -- (agg);
+\draw[arr] (agg) -- (clients) node[midway, left, font=\tiny] {$T$ rounds};
+
+% Phase 2: SACP calibration
+\node[cal, below=7mm of agg] (calib) {Held-out\\calibration set};
+\node[cal, right=of calib] (score) {Per-pixel\\$|f-r|$};
+\node[cal, right=of score] (thr) {Interior /\\boundary\\thresholds};
+\draw[arr] (agg) -- (calib);
+\draw[arr] (calib) -- (score);
+\draw[arr] (score) -- (thr);
+
+% Phase 3: inference
+\node[inf, below=7mm of calib] (new) {New\\MRI + PET};
+\node[inf, right=of new] (fused) {Fused image};
+\node[inf, right=of fused] (heat) {Uncertainty\\heatmap};
+\draw[arr] (new) -- (fused);
+\draw[arr] (fused) -- (heat);
+\draw[arr] (thr) -- (heat);
+
+% Phase labels
+\node[anchor=west, font=\tiny\bfseries] at (clients.north west) {};
+\end{tikzpicture}
+\caption{FedSafe-Fuse pipeline. \textbf{Top (green):} federated training --- each client trains locally, projects its gradient delta to a rank-$d$ subspace via FIPCA, and the server aggregates over $T$ rounds. \textbf{Middle (orange):} SACP calibration --- per-pixel non-conformity scores on a held-out set are split by Canny region into interior/boundary threshold pools. \textbf{Bottom (purple):} inference --- a new MRI/PET pair yields a fused image plus a calibrated uncertainty heatmap.}
+\label{fig:pipeline}
+\end{figure}
 
 \subsection{Fusion backbone}
 \label{ssec:backbone}
