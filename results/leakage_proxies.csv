@@ -1,0 +1,3 @@
+model,n_params,fipca_captured_energy_frac,sqrt_rank_over_n,dpsgd_grad_snr
+surrogate,15226,0.05299,0.04584,0.01621
+full_backbone,4904385,0.0022,0.00255,0.00014

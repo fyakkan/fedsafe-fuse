@@ -1,0 +1,7 @@
+protection,label,modality,mse,ssim,psnr_db
+raw,No protection,mri,0.139961,0.0665,8.54
+raw,No protection,pet,0.120248,0.0587,9.2
+dpsgd,"DP-SGD (sigma=0.5,C=1)",mri,0.159304,0.05,7.98
+dpsgd,"DP-SGD (sigma=0.5,C=1)",pet,0.111063,0.0425,9.54
+fipca,FIPCA (rank=32),mri,0.162579,0.047,7.89
+fipca,FIPCA (rank=32),pet,0.108985,0.0426,9.63

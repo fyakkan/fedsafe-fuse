@@ -67,3 +67,8 @@ PROJECT_PLAN.md
 fedsafe_fuse_submission/
 fedsafe_fuse_submission */
 fedsafe_fuse_submission*.zip
+fedsafe_fuse_submission_cleaned/
+submission/
+
+# Colab notebook export printouts (bulky, redundant with the .ipynb source)
+*Colab.pdf

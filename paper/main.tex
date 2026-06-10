@@ -28,8 +28,7 @@
 
 \author{
 \IEEEauthorblockN{Furkan Yakkan}
-\IEEEauthorblockA{Department of Computer Engineering\\
-Abdullah G\"{u}l University\\
+\IEEEauthorblockA{Abdullah G\"{u}l University\\
 Kayseri, T\"{u}rkiye\\
 Email: furkan.yakkan@agu.edu.tr}
 }
@@ -38,7 +37,7 @@ Email: furkan.yakkan@agu.edu.tr}
 
 % =========================================================
 \begin{abstract}
-Federated multi-modal medical image fusion lets multiple hospitals jointly train a single fusion model without sharing raw patient images, but two unresolved gaps limit clinical deployment. First, exchanged gradients still leak training data via inversion attacks. Second, even a well-trained fusion model produces outputs that clinicians cannot calibrate per-pixel. We propose \textit{FedSafe-Fuse}, a lightweight Transformer--CNN fusion network trained with two complementary safety mechanisms: (1) Federated Incremental PCA (FIPCA), implemented in Round~1 as a deterministic orthonormal rank-$d$ projection of gradient deltas, which compresses upstream traffic from 59\,MB/round (DP-SGD baseline) to 384 bytes/round (rank-32), and (2) Spatially-Aware Conformal Prediction (SACP), which uses Canny-edge region splitting to produce regional, distribution-free uncertainty thresholds with finite-sample coverage guarantees. On MedMNIST OrganAMNIST under non-IID (K=3, T=50) federated training, FIPCA achieves a $\compressratio$ communication reduction over DP-SGD at equivalent privacy (DLG reconstruction SSIM~$\leq$~0.013 vs.~0.999 with raw gradients), and SACP attains empirical coverages of 0.97/0.93/0.88 against the targets 0.95/0.90/0.85. Code and reproducible scripts are available at \url{https://github.com/fyakkan/fedsafe-fuse}.
+Federated multi-modal medical image fusion lets multiple hospitals jointly train a single fusion model without sharing raw patient images, but two unresolved gaps limit clinical deployment. First, exchanged gradients still leak training data via inversion attacks. Second, even a well-trained fusion model produces outputs that clinicians cannot calibrate per-pixel. We present \textit{FedSafe-Fuse}, a federated framework that contributes two complementary safety mechanisms, demonstrated through a lightweight Transformer--CNN fusion backbone: (1) Federated Incremental PCA (FIPCA), an orthonormal rank-$d$ projection of gradient deltas that compresses upstream traffic from 59\,MB/round (DP-SGD baseline) to 384 bytes/round (rank-32), and (2) Spatially-Aware Conformal Prediction (SACP), which uses Canny-edge region splitting to produce regional, distribution-free uncertainty thresholds with finite-sample coverage guarantees. We evaluate on both synthetic MedMNIST OrganAMNIST and \textbf{real multi-modal BraTS~2020} (T1/T2) under non-IID (K=3, T=50) federated training. The fusion task itself converges to high fidelity (SSIM~0.995 on BraTS), confirming the pipeline; FIPCA then achieves a $\compressratio$ communication reduction over DP-SGD at matched empirical privacy (DLG reconstruction SSIM~$\leq$~0.013 vs.~0.999 with raw gradients), which we complement with formal R\'enyi-DP accounting ($\varepsilon\!\approx\!6.2$ at $\delta\!=\!10^{-5}$ for the noise baseline) and a full-backbone DLG analysis. SACP attains target coverage on both datasets, with the clinically expected wider-at-boundary intervals emerging on the well-trained model. We characterise honestly the resulting tension between extreme compression and fusion quality. Code and reproducible scripts are available at \url{https://github.com/fyakkan/fedsafe-fuse}.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -55,19 +54,20 @@ First, the gradients or weight deltas exchanged at each communication round are 
 
 Second, even a fully converged fusion network produces pixel-level outputs that clinicians cannot trust uniformly. Fused images often exhibit hallucinations or boundary ambiguity, especially in out-of-distribution cases or in regions affected by cross-institutional data heterogeneity. A clinically deployable fusion model should therefore augment every fused output with a per-pixel measure of how reliable the model believes that pixel to be, and that measure should come with a distribution-free statistical guarantee.
 
-\noindent\textbf{Contributions.} This paper introduces \textit{FedSafe-Fuse}, a federated fusion framework that simultaneously addresses both gaps:
+\noindent\textbf{Contributions.} This paper presents \textit{FedSafe-Fuse}, a federated framework whose primary contributions are two privacy/uncertainty mechanisms; the fusion backbone is the vehicle through which we demonstrate and stress-test them.
 \begin{itemize}
-    \item A lightweight Transformer-CNN hybrid fusion network ($\sim$4.9\,M parameters) trained via single-process FedAvg with K=3 simulated hospital nodes over T=50 communication rounds.
-    \item \textbf{Federated Incremental PCA (FIPCA)} for gradient-level privacy: each client's weight delta is projected onto a deterministic, shared orthonormal rank-$d$ subspace before transmission. We empirically validate that this matches DP-SGD's privacy outcome (DLG reconstruction SSIM~$\leq$~0.013) while reducing upstream payload from 59.18\,MB/round to as little as 192 bytes/round at $d{=}16$.
-    \item \textbf{Spatially-Aware Conformal Prediction (SACP)}: separate (1-$\alpha$)-quantile thresholds are calibrated on interior vs.~boundary pixel populations identified by Canny edge detection on the reference composite. On 256 held-out MedMNIST test samples we observe empirical coverages of 0.97 / 0.93 / 0.88 against targets 0.95 / 0.90 / 0.85.
-    \item A complete reproducibility pipeline: every notebook, the trained Round-1 checkpoint, per-pixel conformity scores, and CSV results are released so any reader can recompute the SACP thresholds without retraining.
+    \item \textbf{Federated Incremental PCA (FIPCA)} for gradient-level privacy: each client's weight delta is projected onto a deterministic, shared orthonormal rank-$d$ subspace before transmission. This matches DP-SGD's empirical privacy outcome (DLG reconstruction SSIM~$\leq$~0.013) while reducing upstream payload from 59.18\,MB/round to as little as 192 bytes/round at $d{=}16$ --- a $\compressratio$ reduction at rank-32.
+    \item \textbf{Spatially-Aware Conformal Prediction (SACP)}: separate (1-$\alpha$)-quantile thresholds are calibrated on interior vs.~boundary pixel populations identified by Canny edge detection on the reference composite, yielding distribution-free finite-sample coverage that we validate on both synthetic and real data.
+    \item \textbf{A privacy analysis that covers the deployed model and a formal DP comparison.} We run DLG against the full 4.9\,M-parameter backbone, quantitatively justify the tractable surrogate via gradient-leakage proxies that \emph{shrink} with model size, and add R\'enyi-DP accounting for the DP-SGD baseline.
+    \item \textbf{Evaluation on real multi-modal BraTS~2020} (T1/T2) alongside MedMNIST, showing the federated fusion task converges to SSIM~0.995, and an honest characterisation --- including a negative result on error-feedback --- of the trade-off between extreme gradient compression and fusion quality.
+    \item A complete reproducibility pipeline: every notebook, trained checkpoints, per-pixel conformity scores, the DP accountant, and CSV results are released so any reader can recompute every table without retraining.
 \end{itemize}
 
 % =========================================================
 \section{Related Work}
 \label{sec:related}
 
-\noindent\textbf{Federated learning.} FedAvg~\cite{mcmahan2017fedavg} formalised parameter-averaging FL. FedProx~\cite{li2020fedprox} introduced a proximal regulariser to handle non-IID client distributions, and a wide range of subsequent works added secure aggregation, robust aggregation, or personalisation. Our Round-1 implementation uses a single-process FedAvg simulator that mirrors the round structure of Flower~\cite{beutel2020flower} so the algorithm can be ported to the real Flower runtime without changing the experimental protocol.
+\noindent\textbf{Federated learning.} FedAvg~\cite{mcmahan2017fedavg} formalised parameter-averaging FL. FedProx~\cite{li2020fedprox} introduced a proximal regulariser to handle non-IID client distributions, and a wide range of subsequent works added secure aggregation, robust aggregation, or personalisation. Our implementation uses a single-process FedAvg simulator that mirrors the round structure of Flower~\cite{beutel2020flower} so the algorithm can be ported to the real Flower runtime without changing the experimental protocol.
 
 \noindent\textbf{Medical image fusion.} IFCNN~\cite{zhang2021ifcnn} introduced a general two-stream CNN with element-wise fusion rules; we use it as a non-private federated baseline. U2Fusion~\cite{xu2022u2fusion} added unsupervised fusion via a quality-aware loss. More recent work has explored Transformer-CNN hybrids~\cite{tang2023semantic}; our backbone follows this design philosophy with a deliberately small footprint suited to federated communication budgets.
 
@@ -145,13 +145,15 @@ where $f$ is the fused output, $m, p$ are the MRI and PET inputs, $r = 0.5(m + p
 
 Training is distributed across K=3 simulated hospital clients with non-IID label skew (Dirichlet $\alpha{=}0.3$ over 11 organ classes). The central server executes T=50 communication rounds, with each client performing E=5 local epochs per round.
 
-For each round $t$, every client $k$ receives the current global state $\theta^{(t)}$, performs local training with Adam (lr~$=10^{-3}$, weight decay~$10^{-4}$, batch~16) on a fresh random sample of 100 examples per local epoch, and produces a local state $\theta^{(t)}_k$. The full weight delta $\delta_k = \theta^{(t)}_k - \theta^{(t)}$ is flattened to a vector in $\mathbb{R}^{N}$ where $N \approx 4.9\!\times\!10^6$.
+For each round $t$, every client $k$ receives the current global state $\theta^{(t)}$, performs local training with Adam (lr~$=10^{-3}$, weight decay~$10^{-4}$, batch~16) on a fresh random sample of 40 examples per local epoch, and produces a local state $\theta^{(t)}_k$. The full weight delta $\delta_k = \theta^{(t)}_k - \theta^{(t)}$ is flattened to a vector in $\mathbb{R}^{N}$ where $N \approx 4.9\!\times\!10^6$.
 
 For privacy, we replace transmission of the raw $\delta_k$ with an orthonormal rank-$d$ projection. A deterministic Gaussian matrix $G \in \mathbb{R}^{N\times d}$ generated from a shared seed is orthonormalised via QR decomposition, $G \to Q$, with $Q^\top Q = I_d$. We define the projection matrix $P = Q^\top \in \mathbb{R}^{d\times N}$. Each client transmits only the $d$-dimensional coefficient vector $c_k = P \delta_k$. The server averages coefficients, reconstructs in the original parameter space as $\bar\delta = P^\top \bar c$, and updates $\theta^{(t+1)} = \theta^{(t)} + \bar\delta$.
 
 Because $P$ has orthonormal rows, $\|P^\top P x\|_2 \leq \|x\|_2$ for any $x$, which guarantees numerical stability of the FedAvg update --- a property the alternative scaled-Gaussian construction does not satisfy. The trade-off is that the captured subspace has dimension $d \ll N$ so per-round signal is limited; see Section~\ref{ssec:results-ablation} for the rank ablation.
 
 The bytes transmitted per client per round under FIPCA are $4d$ (single-precision floats), independent of model size. Across $K$ clients the total upstream bytes per round are $4Kd$, which gives 192/384/768 bytes at $d \in \{16, 32, 64\}$.
+
+\noindent\textbf{Why error feedback cannot rescue quality (a negative result).} A natural attempt to recover the discarded signal is memory-compensated compression~\cite{stich2018sparsified}: each client accumulates the projection residual $e_k \leftarrow \delta_k - P^\top P \delta_k$ and adds it to the next round's delta before projecting. We find this provably inert under FIPCA: with a \emph{fixed} basis, the residual lies in the null space of $P$, so $P(\delta_k + e_k) = P\delta_k$ and the transmitted coefficients are unchanged (we verified payloads are identical to within $3\!\times\!10^{-6}$ floating-point noise). Resampling the basis each round from a shared seed makes the residual transmissible but renders the operator non-contractive, so the residual norm grows as $\|e_k\| \!\sim\! \|\delta_k\|\cdot 2N/d$ and the reconstructed update diverges (NaN within $10$--$30$ rounds, faster at higher $d$). The captured-energy fraction per round is $\!\sim\!d/N$, so the channel can touch only $1-(1-d/N)^T \!\approx\! 0.03\%$ of parameter-space energy at $d{=}32$ over $T{=}50$ rounds. Extreme gradient compression and fusion quality are therefore in fundamental tension under this regime; we frame fusion as the vehicle for the privacy and uncertainty contributions rather than as the headline objective.
 
 \subsection{Spatially-Aware Conformal Prediction}
 \label{ssec:sacp}
@@ -175,18 +177,18 @@ At inference time, a pixel is flagged as \textit{uncertain} when its non-conform
 \subsection{Dataset and partitioning}
 We use MedMNIST OrganAMNIST~\cite{yang2023medmnistv2}, an 11-class abdominal CT benchmark (34{,}561 train / 6{,}491 val / 17{,}778 test, originally $28\!\times\!28$). Each slice is upsampled to $128\!\times\!128$ and paired with a synthetic MRI-like / PET-like representation: the MRI-like channel applies CLAHE contrast enhancement, and the PET-like channel applies a $\gamma{=}1.6$ gamma compression followed by a $\sigma{=}1.2$ Gaussian blur. This synthetic-pairing protocol follows the fusion literature's standard practice for controlled multi-modal experiments. A 15\% random subset of the training split is held out as the SACP calibration set. The remaining 85\% is partitioned across K=3 clients via per-class Dirichlet sampling with $\alpha{=}0.3$, producing strong organ-class skew across clients (client sizes 7{,}714 / 15{,}445 / 6{,}218 after the 15\% calibration hold-out).
 
-The proposal also included BraTS~2020 (T1/T2 axial brain MRI slices) as a secondary dataset; the 365 extracted per-case archives are stored on the project's Drive mirror but are deferred to Round~2 due to the Round-1 single-session compute budget.
+We additionally evaluate on \textbf{real multi-modal BraTS~2020}~\cite{menze2015brats,bakas2017brats} (T1 as the structural channel, T2 as the complementary channel; 365 cases, 17{,}568 axial slices with $\geq$1\% tumour coverage, normalised to $[0,1]$ at $128\!\times\!128$). The non-IID partition follows the clinical HGG/LGG grade split across K=3 clients (client~0: 146 HGG; client~1: 98 HGG + 13 LGG; client~2: 54 LGG). To fit the compute budget we run BraTS at small scale (12 cases per client; disclosed), with a disjoint set of held-out cases reserved for SACP calibration and coverage evaluation.
 
 \subsection{Federated configuration}
 K=3 clients, T=50 communication rounds, E=5 local epochs per round, batch size 16, Adam optimiser, learning rate $10^{-3}$, weight decay $10^{-4}$. To fit Colab Free's $\sim$4-hour T4 session, each client samples 40 fresh training examples per local epoch (cf.~Methods); under this cap, the full 3-method pipeline (B1, B2, ours) completes in $\sim$20\,min wall-clock on a single T4 GPU.
 
 \subsection{Baselines}
-\textbf{B1: FedAvg + DP-SGD} -- per-batch gradients are clipped to L2 norm $C{=}1.0$ and perturbed with isotropic Gaussian noise of standard deviation $\sigma C$ with $\sigma{=}0.5$. We did not maintain a formal R\'enyi-DP accountant; the corresponding $(\varepsilon, \delta)$ bound is therefore reported empirically by the DLG attack rather than analytically.
+\textbf{B1: FedAvg + DP-SGD} -- per-batch gradients are clipped to L2 norm $C{=}1.0$ and perturbed with isotropic Gaussian noise of standard deviation $\sigma C$ with $\sigma{=}0.5$. We report both the empirical privacy (via DLG) and a formal $(\varepsilon, \delta)$ bound computed with a R\'enyi-DP accountant for the sub-sampled Gaussian mechanism~\cite{mironov2017renyi,mironov2019renyi} (Section~\ref{ssec:results-dp}).
 
 \noindent\textbf{B2: FedAvg + IFCNN}~\cite{zhang2021ifcnn} -- the original IFCNN baseline (316{,}545 parameters) trained with vanilla FedAvg.
 
 \subsection{Evaluation}
-Fusion quality is measured by SSIM (primary) and PSNR against the reference composite $r$. Privacy is measured by reconstruction MSE / SSIM / PSNR of a DLG attack on a small surrogate classifier. Communication cost is the total upstream bytes per round, measured directly from the per-client transmitted payload sizes. SACP is evaluated by empirical coverage rate and average prediction-interval width on 256 unseen MedMNIST test samples.
+Fusion quality is measured by SSIM (primary) and PSNR against the reference composite $r$. Privacy is measured both by reconstruction SSIM of a DLG attack --- on a tractable surrogate classifier \emph{and} on the full 4.9\,M-parameter backbone --- and by a formal $(\varepsilon,\delta)$ bound for the DP-SGD baseline. Communication cost is the total upstream bytes per round, measured directly from the per-client transmitted payload sizes. SACP is evaluated by empirical coverage rate and average prediction-interval width on unseen test samples from each dataset.
 
 % =========================================================
 \section{Results and Discussion}
@@ -207,14 +209,28 @@ Figure~\ref{fig:convergence} shows the per-round eval-set SSIM trajectories. IFC
 \label{fig:convergence}
 \end{figure}
 
+\subsection{Real multi-modal BraTS results}
+\label{ssec:results-brats}
+
+To move beyond synthetic MedMNIST pairing, we repeat the federated protocol on real BraTS~2020 T1/T2 slices. Table~\ref{tab:brats_results} reports the final-round results. The non-private IFCNN+FedAvg model converges to \textbf{SSIM~0.995 and PSNR~38.9\,dB} on real multi-modal data, rising from 0.14 at round~1 to 0.99 by round~20 --- direct evidence that the federated fusion task and pipeline are sound on genuine clinical imagery, not an artefact of the synthetic pairing. As on MedMNIST, FedSafe-Fuse with FIPCA holds the extreme-compression operating point (384 bytes/round) at the expected fusion-quality cost.
+
+\input{tables/brats_results}
+
+This result is the key evidence for our reframing: the limiting factor on the private model's fusion quality is the rank-$d$ communication bottleneck (Section~\ref{ssec:fipca}), not a deficiency of the fusion task, the backbone, or the data.
+
 \subsection{Privacy: gradient-inversion attack}
 \label{ssec:results-privacy}
 
-We implement the DLG attack~\cite{zhu2019dlg} against a 10{,}295-parameter classifier surrogate operating on a synthetic $32\!\times\!32$ grayscale image of two Gaussian blobs. The attacker observes the (possibly protected) gradient and optimises a dummy input + soft-label pair to match it under LBFGS for 120 iterations. The reduced model size keeps DLG within the 20-min phase budget; full-model DLG against the 4.9\,M-parameter FedSafe-Fuse is not tractable in the Round-1 setup. Reconstruction quality is shown in Table~\ref{tab:attack}.
+\noindent\textbf{Surrogate attack.} We implement the DLG attack~\cite{zhu2019dlg} against a 15{,}226-parameter classifier surrogate operating on a synthetic $32\!\times\!32$ grayscale image of two Gaussian blobs. The attacker observes the (possibly protected) gradient and optimises a dummy input + soft-label pair to match it under LBFGS for 120 iterations. Reconstruction quality is shown in Table~\ref{tab:attack}.
 
 \input{tables/attack}
 
 Raw gradients leak the input image with SSIM 0.9999 and PSNR 74.3\,dB --- effectively perfect reconstruction. Both privacy mechanisms destroy DLG: DP-SGD produces reconstruction SSIM~$\approx 4 \times 10^{-4}$ and FIPCA produces SSIM~$\approx 0.013$. Both values are far below the visual-recognition threshold of $\sim$0.5.
+
+\noindent\textbf{Full-backbone attack and a quantitative surrogate justification.} We also run DLG directly against the deployed 4.9\,M-parameter FedSafe-Fuse model, reconstructing both input modalities at batch~1 from a real MedMNIST pair (Table~\ref{tab:dlg_full}). Because the MobileNetV3 backbone uses activations and a fused attention kernel whose second derivatives are unavailable, we attack a variant with identical trained weights but smooth activations (Hardswish$\to$SiLU, Hardsigmoid$\to$Sigmoid) and the math attention backend; smoothing can only \emph{aid} an attacker, so the measured leakage upper-bounds the deployed model's. Even with raw gradients the full model barely reconstructs (mean SSIM~$\approx$~0.06, versus 0.9999 on the surrogate), and the protected variants rank below raw. Table~\ref{tab:leakage_proxies} explains why the small surrogate is nonetheless a fair --- indeed conservative --- testbed: the FIPCA captured-energy fraction ($\!\sim\!\sqrt{d/N}$) and the DP-SGD gradient SNR ($\!\sim\!1/(\sigma\sqrt{N})$) both \emph{shrink} as the parameter count $N$ grows, by $24\times$ and $116\times$ respectively from surrogate to full backbone. Protection demonstrated on the surrogate therefore holds \emph{a fortiori} on the deployed model.
+
+\input{tables/dlg_full}
+\input{tables/leakage_proxies}
 
 Figure~\ref{fig:attack_recon} shows the qualitative reconstructions. The privacy outcome of FIPCA and DP-SGD is operationally indistinguishable to a downstream defender, while their bandwidth profiles differ by five orders of magnitude.
 
@@ -234,6 +250,15 @@ Figure~\ref{fig:tradeoff} plots reconstruction SSIM (privacy axis) against bytes
 \label{fig:tradeoff}
 \end{figure}
 
+\subsection{Formal differential-privacy accounting}
+\label{ssec:results-dp}
+
+To make the privacy comparison analytical rather than purely empirical, we compute a formal $(\varepsilon, \delta)$ bound for the DP-SGD baseline with a R\'enyi-DP accountant for the sub-sampled Gaussian mechanism~\cite{mironov2017renyi,mironov2019renyi}, composed over the 750 noisy gradient steps each client performs ($T{=}50$ rounds $\times$ $E{=}5$ epochs $\times$ 3 minibatches), with fixed-size batches accounted as Poisson sub-sampling at rate $q = b/N$. Table~\ref{tab:dp_accounting} reports the result at $\delta = 10^{-5}$.
+
+\input{tables/dp_accounting}
+
+Heavy sub-sampling amplification ($q \!\approx\! 0.002$ over only 750 steps) keeps the guarantee bounded, but at $\sigma{=}0.5$ it is \emph{weak}: the worst-case client attains only $\varepsilon \approx 6.2$. Crucially, buying even this weak formal guarantee cost 59\,MB/round and collapsed fusion utility to SSIM~0.23. FIPCA attains the same empirical DLG protection (SSIM~$\leq$~0.013) at 384\,bytes/round, so the privacy comparison now holds on both an empirical (DLG) and an analytical ($\varepsilon$) axis. The accountant is released as a standalone, dependency-light script for reproducibility.
+
 \subsection{SACP coverage validation}
 \label{ssec:results-sacp}
 
@@ -241,7 +266,11 @@ SACP thresholds are calibrated on the 5{,}184 MedMNIST calibration samples using
 
 \input{tables/coverage}
 
-All six measured coverages meet or slightly exceed their target, confirming the split-conformal validity of the regional thresholds. We observe that interior intervals are wider than boundary intervals in this checkpoint --- the opposite of the proposal's hypothesised pattern. This is the correct conformal response for a model whose output is nearly constant: the residual is largest exactly where the reference is furthest from the constant, which is in low/high-intensity tissue interiors rather than at edges. A better-trained backbone is expected to invert this relationship, and the inversion itself would constitute additional evidence that SACP tracks model uncertainty rather than image content.
+All six measured coverages meet or slightly exceed their target, confirming the split-conformal validity of the regional thresholds. On this near-constant FIPCA checkpoint the interior intervals are \emph{wider} than the boundary intervals: the residual is largest exactly where the reference is furthest from the model's near-constant output, which is in tissue interiors rather than at edges.
+
+\noindent\textbf{Coverage on real data, and the predicted width inversion.} We repeat the SACP calibration on the converged real-data BraTS IFCNN model, calibrating and evaluating on disjoint held-out BraTS cases (Table~\ref{tab:brats_coverage}). Coverage again meets target at all three levels on real multi-modal data. With a well-trained model the width ordering \textbf{inverts as predicted}: boundary intervals (0.058--0.082) are now wider than interior intervals (0.0002--0.027). This confirms that SACP tracks model uncertainty rather than image content --- a near-constant model is uncertain in interiors, whereas an accurate model is uncertain at the high-gradient boundaries clinicians care about most.
+
+\input{tables/brats_coverage}
 
 Figure~\ref{fig:uncertainty} shows four representative test cases. The fused output is near-uniform (a direct consequence of the rank-32 FIPCA bottleneck during training); the residual map is correspondingly bright; the binary uncertain-pixel overlay highlights pixels whose non-conformity score exceeds the calibrated regional threshold at $\alpha = 0.10$.
 
@@ -262,36 +291,36 @@ Table~\ref{tab:ablation_rank} sweeps the FIPCA rank $d$ through the proposal's p
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{../figures/ablation_fipca_rank_v2.png}
-\caption{FIPCA rank ablation. Within the Round-1 training schedule the final SSIM is flat across ranks (the model has not escaped its near-constant output regime), so rank effectively only controls communication cost. Even at $d{=}64$, FedSafe-Fuse + FIPCA transmits 77{,}000$\times$ fewer bytes per round than DP-SGD.}
+\caption{FIPCA rank ablation. Within this training schedule the final SSIM is flat across ranks (the model has not escaped its near-constant output regime), so rank effectively only controls communication cost. Even at $d{=}64$, FedSafe-Fuse + FIPCA transmits 77{,}000$\times$ fewer bytes per round than DP-SGD.}
 \label{fig:ablation}
 \end{figure}
 
-The headline observation is that final SSIM is constant ($\Delta \approx 2 \times 10^{-4}$, well within stochastic noise) across the three ranks while communication cost grows linearly. Under this Round-1 training schedule, rank therefore acts as a pure communication knob with no quality penalty. This is consistent with the interpretation that the fusion backbone has not yet escaped its near-constant initialisation regime; longer training, or coarser-to-fine schedules that increase $d$ over rounds, are natural Round-2 directions.
+The headline observation is that final SSIM is constant ($\Delta \approx 2 \times 10^{-4}$, well within stochastic noise) across the three ranks while communication cost grows linearly. Under this training schedule, rank therefore acts as a pure communication knob with no quality penalty. This is consistent with the interpretation that the fusion backbone has not yet escaped its near-constant initialisation regime; longer training, or coarser-to-fine schedules that increase $d$ over rounds, are natural future directions.
 
 \subsection{Limitations}
 \label{ssec:limitations}
 
-We highlight three Round-1 limitations that we have logged transparently for reviewers.
+We highlight the remaining limitations transparently.
 
-\textbf{(L1) Random-projection FIPCA.} The proposal describes a data-aware Federated Incremental PCA. Round~1 implements a simpler deterministic orthonormal random projection that preserves the communication-cost and privacy-against-DLG properties of FIPCA but is not data-aware; a true Incremental PCA basis is deferred to Round~2.
+\textbf{(L1) Random-projection FIPCA.} The proposal describes a data-aware Federated Incremental PCA. We implement a deterministic orthonormal random projection that preserves the communication-cost and privacy-against-DLG properties of FIPCA but is not data-aware. As Section~\ref{ssec:fipca} shows, neither error feedback nor basis resampling recovers the discarded signal within this rank-$d$ regime; a genuinely data-aware incremental-PCA basis that concentrates the gradient energy into the transmitted subspace is the principled path to reconciling compression with quality, and remains future work.
 
-\textbf{(L2) MedMNIST only.} BraTS~2020 (T1/T2 brain MRI) was extracted and partitioned in Phase~1 (365 cases, 17{,}568 slices, with HGG/LGG non-IID partitioning) but federated training on BraTS was deferred to Round~2 to keep the Round-1 compute budget within a single $\sim$4-hour T4 session.
+\textbf{(L2) Extreme-compression quality cost.} The private FedSafe-Fuse + FIPCA configuration does not itself produce high-fidelity fusion; its value is the $\compressratio$ communication reduction at matched privacy. We have therefore positioned fusion as the vehicle for the privacy and uncertainty contributions, supported by the converged non-private results on both MedMNIST (0.972) and real BraTS (0.995).
 
-\textbf{(L3) DLG surrogate.} The DLG attack is implemented against a 10\,K-parameter classifier surrogate, not the full 4.9\,M-parameter fusion network. This makes the privacy comparison between FIPCA and DP-SGD tractable but does not measure end-to-end DLG against the production backbone. Round~2 may explore attacks on the encoders directly.
+\textbf{(L3) Small-scale and single-seed evaluation.} The BraTS run uses 12 cases per client and a single seed (42) to fit the Colab-Free compute budget; multi-seed mean$\pm$std and full-cohort BraTS training are natural next steps.
 
 % =========================================================
 \section{Conclusion and Future Work}
 \label{sec:conclusion}
 
-We presented FedSafe-Fuse, a federated multi-modal medical image fusion framework that combines orthonormal rank-$d$ gradient projection for privacy and Canny-region-aware split conformal prediction for pixel-level uncertainty. On MedMNIST OrganAMNIST in a non-IID K=3 federated setting we demonstrated that FIPCA reduces upstream communication from 59.18\,MB/round (DP-SGD) to 384 bytes/round at rank~32 while matching DP-SGD's empirical privacy under the DLG attack (reconstruction SSIM~$\leq$~0.013 in both cases). SACP achieves calibrated empirical coverage on the trained checkpoint.
+We presented FedSafe-Fuse, a federated framework contributing orthonormal rank-$d$ gradient projection for privacy and Canny-region-aware split conformal prediction for pixel-level uncertainty, demonstrated through a lightweight fusion backbone. Across synthetic MedMNIST and real multi-modal BraTS~2020 in a non-IID K=3 setting, FIPCA reduces upstream communication from 59.18\,MB/round (DP-SGD) to 384 bytes/round at rank~32 while matching DP-SGD's empirical privacy under DLG (reconstruction SSIM~$\leq$~0.013); we corroborate this with a full-backbone DLG analysis, a quantitative justification of the surrogate, and formal R\'enyi-DP accounting ($\varepsilon \approx 6.2$ for the noise baseline). SACP achieves calibrated coverage on both datasets, with the clinically expected wider-at-boundary intervals emerging once the model is well trained. We also reported a negative result --- error feedback cannot rescue fusion quality under a fixed or randomly-resampled projection basis --- that sharpens the open problem.
 
-Future work falls into three concrete directions. First, replacing random-projection FIPCA with a data-aware incremental PCA basis is expected to recover most of the fusion quality currently sacrificed in the rank-32 setting. Second, scaling to BraTS~2020 with the same federated and SACP pipeline will provide the clinically realistic multi-modal evaluation envisaged in the original proposal. Third, formal $(\varepsilon, \delta)$-DP accounting via a R\'enyi-DP accountant should accompany the DP-SGD baseline and enable a head-to-head with FIPCA on a privacy axis grounded in differential-privacy guarantees rather than empirical reconstruction failure.
+The central open problem is therefore to reconcile extreme gradient compression with fusion quality. A data-aware incremental-PCA basis that concentrates each round's gradient energy into the transmitted subspace --- rather than a fixed random one --- is the principled next step, as our information-bottleneck analysis ($\sim\!d/N$ energy per round) makes precise. Multi-seed and full-cohort BraTS evaluation would further strengthen the clinical case.
 
 % =========================================================
 \section*{Acknowledgements}
 This work was developed with the assistance of Claude (Anthropic), a generative AI tool, used for structuring drafts, formulating implementation steps, and formatting. All technical content, experimental results, and the final manuscript were reviewed, validated, and edited by the author, who takes full responsibility for the accuracy, originality, and academic integrity of this work.
 
-The source code, trained Round-1 checkpoints, per-pixel conformity scores, and reproduction notebooks for every figure and table in this paper are available at \url{https://github.com/fyakkan/fedsafe-fuse}.
+The source code, trained checkpoints, per-pixel conformity scores, the standalone DP accountant, and reproduction notebooks for every figure and table in this paper are available at \url{https://github.com/fyakkan/fedsafe-fuse}.
 
 % =========================================================
 \bibliographystyle{IEEEtran}

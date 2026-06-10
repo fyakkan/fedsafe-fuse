@@ -11,7 +11,13 @@ Three modes:
     - 'fipca'   : Client weight delta is projected to a rank-d subspace via a
                   pseudo-random Gaussian matrix derived from a fixed seed (shared
                   basis across clients, never transmitted). Server averages the
-                  rank-d coefficients and reconstructs.
+                  rank-d coefficients and reconstructs. With error_feedback=True
+                  each client additionally keeps a local residual of the part of
+                  its delta the projection discarded and adds it back into the
+                  next round's delta before projecting (memory-compensated
+                  compression, Stich et al. 2018). The transmitted payload is
+                  still exactly rank-d coefficients and the residual never
+                  leaves the client.
 
 Communication cost per round is logged in bytes, which is the primary privacy /
 efficiency claim of FedSafe-Fuse.
@@ -66,6 +72,20 @@ class FedAvgTrainer:
         Cap on examples drawn per client per local epoch (Round 1 compute cut).
     fipca_rank :
         d, the rank of the FIPCA random-projection subspace.
+    error_feedback :
+        FIPCA only. If True, each client accumulates the projection residual
+        locally and adds it to the next round's delta before compressing.
+        NOTE: with a fixed basis this is provably inert — the residual lies in
+        the null space of P, so P @ residual = 0 and the payload is unchanged.
+        Error feedback only transmits accumulated information when the basis
+        changes between rounds; combine with resample_basis=True.
+    resample_basis :
+        FIPCA only. If True, the orthonormal basis P is regenerated at the
+        start of every round from a per-round seed (seed + 7919 * t). The seed
+        schedule is deterministic and shared by all clients, so the basis is
+        never transmitted and bytes/round are unchanged. Successive subspaces
+        are independent, so the error-feedback residual from round t overlaps
+        round t+1's subspace and is gradually transmitted.
     dp_clip, dp_sigma :
         DP-SGD per-batch gradient L2-clip threshold and noise multiplier.
     lr :
@@ -88,6 +108,8 @@ class FedAvgTrainer:
         mode: str = "standard",
         samples_per_local_epoch: int = 100,
         fipca_rank: int = 32,
+        error_feedback: bool = False,
+        resample_basis: bool = False,
         dp_clip: float = 1.0,
         dp_sigma: float = 0.5,
         lr: float = 1e-3,
@@ -103,6 +125,8 @@ class FedAvgTrainer:
         self.mode = mode
         self.samples_per_local_epoch = samples_per_local_epoch
         self.fipca_rank = fipca_rank
+        self.error_feedback = error_feedback and mode == "fipca"
+        self.resample_basis = resample_basis and mode == "fipca"
         self.dp_clip = dp_clip
         self.dp_sigma = dp_sigma
         self.lr = lr
@@ -120,11 +144,19 @@ class FedAvgTrainer:
         # Earlier scaled-Gaussian attempt had operator norm ~sqrt(n_params/rank),
         # causing reconstructed deltas to blow up and Adam to diverge (NaN).
         if mode == "fipca":
-            n_params = sum(v.numel() for v in self.global_state.values())
-            gen = torch.Generator(device=device).manual_seed(seed)
-            G = torch.randn(n_params, fipca_rank, device=device, generator=gen)
-            Q, _ = torch.linalg.qr(G)  # Q has orthonormal columns: (n_params, rank)
-            self.P = Q.T.contiguous()  # (rank, n_params) with orthonormal rows
+            self._n_params = sum(v.numel() for v in self.global_state.values())
+            self._build_basis(seed)
+            # Error-feedback residuals: one (n_params,) vector per client, kept
+            # strictly client-side. Allocated lazily on first compression.
+            self._ef_residuals: list = [None] * len(client_datasets)
+
+    def _build_basis(self, basis_seed: int) -> None:
+        """(Re)build the rank-d orthonormal projection P from a seed."""
+        gen = torch.Generator(device=self.device).manual_seed(basis_seed)
+        G = torch.randn(self._n_params, self.fipca_rank, device=self.device, generator=gen)
+        Q, _ = torch.linalg.qr(G)  # Q has orthonormal columns: (n_params, rank)
+        self.P = Q.T.contiguous()  # (rank, n_params) with orthonormal rows
+        del G, Q
 
     # ------------------------------------------------------------------
     # Client-side local training
@@ -166,11 +198,20 @@ class FedAvgTrainer:
     # ------------------------------------------------------------------
     # Server-side aggregation
     # ------------------------------------------------------------------
-    def _compress_delta(self, delta: dict) -> tuple:
+    def _compress_delta(self, delta: dict, client_idx: int) -> tuple:
         """Return (payload, bytes_sent) for one client's update."""
         if self.mode == "fipca":
             flat = _flatten_state(delta).to(self.device)
+            if self.error_feedback:
+                if self._ef_residuals[client_idx] is None:
+                    self._ef_residuals[client_idx] = torch.zeros_like(flat)
+                flat = flat + self._ef_residuals[client_idx]
             coeffs = self.P @ flat  # (rank,)
+            if self.error_feedback:
+                # What the server will reconstruct from this client's coeffs;
+                # everything the projection dropped is carried to next round.
+                recon = self.P.T @ coeffs
+                self._ef_residuals[client_idx] = (flat - recon).detach()
             payload = coeffs.detach().clone()
             bytes_sent = payload.numel() * 4  # float32
             return payload, bytes_sent
@@ -237,10 +278,12 @@ class FedAvgTrainer:
         history = []
         for t in range(1, T + 1):
             t0 = time.time()
+            if self.mode == "fipca" and self.resample_basis:
+                self._build_basis(self.seed + 7919 * t)
             payloads, total_bytes = [], 0
             for k in range(K):
                 delta = self._train_client(k, E)
-                payload, bytes_sent = self._compress_delta(delta)
+                payload, bytes_sent = self._compress_delta(delta, k)
                 payloads.append(payload)
                 total_bytes += bytes_sent
             avg_delta = self._aggregate(payloads)
@@ -256,6 +299,8 @@ class FedAvgTrainer:
                 "bytes_per_round": int(total_bytes),
                 "samples_per_local_epoch": self.samples_per_local_epoch,
                 "fipca_rank": self.fipca_rank if self.mode == "fipca" else None,
+                "error_feedback": self.error_feedback if self.mode == "fipca" else None,
+                "resample_basis": self.resample_basis if self.mode == "fipca" else None,
                 "dp_sigma": self.dp_sigma if self.mode == "dpsgd" else None,
             }
             if t % log_every == 0 or t == 1 or t == T:
