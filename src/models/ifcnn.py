@@ -64,6 +64,23 @@ class IFCNN(nn.Module):
         return torch.sigmoid(self.recon(fused))
 
 
+class InputMasked(nn.Module):
+    """Zero a fuser's output outside the input-derived brain mask (T1 > 0) | (T2 > 0).
+
+    The mask uses the inputs only, so it is available at inference. Without it a
+    sigmoid output is never exactly 0 on the (majority) air background, which
+    the trivial baselines (T2, mean(T1, T2)) get for free.
+    """
+
+    def __init__(self, net: nn.Module):
+        super().__init__()
+        self.net = net
+
+    def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
+        mask = ((x1 > 0) | (x2 > 0)).to(x1.dtype)
+        return self.net(x1, x2) * mask
+
+
 def count_parameters(model: nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 

@@ -68,3 +68,16 @@ def test_dpsgd_mode_warns():
         warnings.simplefilter("always")
         _trainer("dpsgd")
     assert any("NOT DP-SGD" in str(x.message) for x in w)
+
+
+def test_input_masked_zeroes_background_only():
+    from src.models.ifcnn import IFCNN, InputMasked
+
+    torch.manual_seed(0)
+    m = InputMasked(IFCNN(base_ch=8)).eval()
+    a = torch.rand(2, 1, 16, 16); b = torch.rand(2, 1, 16, 16)
+    a[:, :, :4] = 0; b[:, :, :4] = 0          # background rows
+    b[:, :, 4:6] = 0                          # T2 zero but T1 > 0 -> still brain
+    out = m(a, b)
+    assert torch.all(out[:, :, :4] == 0)
+    assert torch.all(out[:, :, 4:] > 0)
