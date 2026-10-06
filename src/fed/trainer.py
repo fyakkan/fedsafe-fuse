@@ -6,9 +6,12 @@ can be swapped to Flower without changing the experimental protocol.
 
 Three modes:
     - 'standard': vanilla FedAvg (raw weight deltas).
-    - 'dpsgd'   : DP-SGD on each client (per-batch gradient clip + Gaussian noise),
-                  then standard FedAvg aggregation of resulting weight deltas.
-    - 'fipca'   : Client weight delta is projected to a rank-d subspace via a
+    - 'dpsgd'   : DEPRECATED, NOT DP-SGD. Clips the batch-mean gradient and adds
+                  N(0, (sigma*C)^2) to it. Abadi et al. require per-example
+                  clipping; this mechanism has sensitivity 2C and no valid
+                  (epsilon, delta). Kept only to reproduce archived Round-1/2
+                  numbers; do not use for new results (use Opacus).
+    - 'fipca'   : (FROP) Client parameter delta is projected to a rank-d subspace via a
                   pseudo-random Gaussian matrix derived from a fixed seed (shared
                   basis across clients, never transmitted). Server averages the
                   rank-d coefficients and reconstructs. With error_feedback=True
@@ -19,14 +22,25 @@ Three modes:
                   still exactly rank-d coefficients and the residual never
                   leaves the client.
 
-Communication cost per round is logged in bytes, which is the primary privacy /
-efficiency claim of FedSafe-Fuse.
+Communication cost per round is logged in bytes.
+
+FROP projects trainable parameters only. Buffers (BatchNorm running_mean/var,
+num_batches_tracked) are averaged uncompressed and counted in bytes_per_round.
+Earlier versions projected the whole state_dict, which froze BN statistics at
+initialisation (reconstructed buffer deltas ~sqrt(d/N) of the truth, integer
+counters truncated to 0); archived FROP results carry that bug.
+
+If ``supervised_target=True`` each batch is (src1, src2, target, ...) and the
+loss / eval metrics are computed against the held-out ``target`` instead of
+the input-derived reference composite.
 """
 
 from __future__ import annotations
 
 import time
 from typing import Callable, Optional
+
+import warnings
 
 import numpy as np
 import torch
@@ -115,6 +129,7 @@ class FedAvgTrainer:
         lr: float = 1e-3,
         batch_size: int = 16,
         seed: int = 42,
+        supervised_target: bool = False,
     ):
         assert mode in self.VALID_MODES, f"mode must be one of {self.VALID_MODES}"
         self.build_model_fn = build_model_fn
@@ -132,11 +147,21 @@ class FedAvgTrainer:
         self.lr = lr
         self.batch_size = batch_size
         self.seed = seed
+        self.supervised_target = supervised_target
+        if mode == "dpsgd":
+            warnings.warn(
+                "mode='dpsgd' clips the batch-mean gradient; it is NOT DP-SGD and has "
+                "no valid (epsilon, delta). Use only to reproduce archived results.",
+                stacklevel=2,
+            )
         self._rng = np.random.default_rng(seed)
 
         # Global model (server's authoritative copy)
         self.global_model = build_model_fn().to(device)
         self.global_state = {k: v.detach().clone() for k, v in self.global_model.state_dict().items()}
+        param_names = {n for n, _ in self.global_model.named_parameters()}
+        self._param_keys = [k for k in self.global_state if k in param_names]
+        self._buffer_keys = [k for k in self.global_state if k not in param_names]
 
         # FIPCA: deterministic ORTHONORMAL projection matrix P in (rank, n_params).
         # Built via QR decomposition so that P @ P.T = I_rank exactly, which makes
@@ -144,7 +169,7 @@ class FedAvgTrainer:
         # Earlier scaled-Gaussian attempt had operator norm ~sqrt(n_params/rank),
         # causing reconstructed deltas to blow up and Adam to diverge (NaN).
         if mode == "fipca":
-            self._n_params = sum(v.numel() for v in self.global_state.values())
+            self._n_params = sum(self.global_state[k].numel() for k in self._param_keys)
             self._build_basis(seed)
             # Error-feedback residuals: one (n_params,) vector per client, kept
             # strictly client-side. Allocated lazily on first compression.
@@ -181,7 +206,7 @@ class FedAvgTrainer:
             for batch in loader:
                 mri, pet = batch[0].to(self.device), batch[1].to(self.device)
                 fused = local_model(mri, pet)
-                loss = loss_fn(fused, mri, pet)
+                loss = self._loss(loss_fn, fused, mri, pet, batch)
                 opt.zero_grad()
                 loss.backward()
                 if self.mode == "dpsgd":
@@ -195,13 +220,18 @@ class FedAvgTrainer:
         delta = {k: (local_state[k].detach() - self.global_state[k]).to(self.device) for k in self.global_state}
         return delta
 
+    def _loss(self, loss_fn, fused, mri, pet, batch):
+        if self.supervised_target:
+            return loss_fn(fused, batch[2].to(self.device))
+        return loss_fn(fused, mri, pet)
+
     # ------------------------------------------------------------------
     # Server-side aggregation
     # ------------------------------------------------------------------
     def _compress_delta(self, delta: dict, client_idx: int) -> tuple:
         """Return (payload, bytes_sent) for one client's update."""
         if self.mode == "fipca":
-            flat = _flatten_state(delta).to(self.device)
+            flat = _flatten_state({k: delta[k] for k in self._param_keys}).to(self.device)
             if self.error_feedback:
                 if self._ef_residuals[client_idx] is None:
                     self._ef_residuals[client_idx] = torch.zeros_like(flat)
@@ -212,8 +242,9 @@ class FedAvgTrainer:
                 # everything the projection dropped is carried to next round.
                 recon = self.P.T @ coeffs
                 self._ef_residuals[client_idx] = (flat - recon).detach()
-            payload = coeffs.detach().clone()
-            bytes_sent = payload.numel() * 4  # float32
+            buffers = {k: delta[k].detach().clone() for k in self._buffer_keys}
+            payload = (coeffs.detach().clone(), buffers)
+            bytes_sent = coeffs.numel() * 4 + sum(v.numel() * v.element_size() for v in buffers.values())
             return payload, bytes_sent
         else:
             payload = {k: v.detach().clone() for k, v in delta.items()}
@@ -222,20 +253,25 @@ class FedAvgTrainer:
 
     def _aggregate(self, client_payloads: list) -> dict:
         if self.mode == "fipca":
-            avg_coeffs = torch.stack(client_payloads).mean(dim=0)  # (rank,)
+            avg_coeffs = torch.stack([cp[0] for cp in client_payloads]).mean(dim=0)  # (rank,)
             recon_flat = self.P.T @ avg_coeffs  # (n_params,)
-            return _unflatten_to_state(recon_flat, self.global_state)
-        else:
-            avg = {}
-            for k in self.global_state:
-                stacked = torch.stack([cp[k] for cp in client_payloads])
-                if stacked.dtype.is_floating_point or stacked.dtype.is_complex:
-                    avg[k] = stacked.mean(dim=0)
-                else:
-                    # Integer buffers (e.g. BatchNorm.num_batches_tracked) cannot be
-                    # mean()-ed directly; promote to float, mean, and cast back.
-                    avg[k] = stacked.to(torch.float32).mean(dim=0).to(stacked.dtype)
+            avg = _unflatten_to_state(recon_flat, {k: self.global_state[k] for k in self._param_keys})
+            avg.update(self._mean_dicts([cp[1] for cp in client_payloads], self._buffer_keys))
             return avg
+        return self._mean_dicts(client_payloads, list(self.global_state))
+
+    @staticmethod
+    def _mean_dicts(dicts: list, keys: list) -> dict:
+        avg = {}
+        for k in keys:
+            stacked = torch.stack([cp[k] for cp in dicts])
+            if stacked.dtype.is_floating_point or stacked.dtype.is_complex:
+                avg[k] = stacked.mean(dim=0)
+            else:
+                # Integer buffers (e.g. BatchNorm.num_batches_tracked) cannot be
+                # mean()-ed directly; promote to float, mean, and cast back.
+                avg[k] = stacked.to(torch.float32).mean(dim=0).to(stacked.dtype)
+        return avg
 
     # ------------------------------------------------------------------
     # Evaluation
@@ -250,8 +286,8 @@ class FedAvgTrainer:
         for batch in loader:
             mri, pet = batch[0].to(self.device), batch[1].to(self.device)
             fused = self.global_model(mri, pet)
-            losses.append(loss_fn(fused, mri, pet).item())
-            ref = 0.5 * (mri + pet)
+            losses.append(self._loss(loss_fn, fused, mri, pet, batch).item())
+            ref = batch[2].to(self.device) if self.supervised_target else 0.5 * (mri + pet)
             ssims.append(ssim_score_fn(fused, ref))
             psnrs.append(psnr_score_fn(fused, ref))
         return {

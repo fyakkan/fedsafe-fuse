@@ -85,6 +85,24 @@ class FusionLoss(nn.Module):
         return self.l1(fused, ref) + self.beta * self.ssim(fused, ref)
 
 
+class TargetLoss(nn.Module):
+    """L1(pred, target) + beta * SSIMLoss(pred, target) against a held-out target.
+
+    Used when the target (e.g. FLAIR) is a separate acquisition that is not a
+    function of the inputs, so the residual |pred - target| is not observable
+    at inference.
+    """
+
+    def __init__(self, beta: float = 1.0):
+        super().__init__()
+        self.l1 = nn.L1Loss()
+        self.ssim = SSIMLoss()
+        self.beta = beta
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return self.l1(pred, target) + self.beta * self.ssim(pred, target)
+
+
 @torch.no_grad()
 def ssim_score(pred: torch.Tensor, target: torch.Tensor) -> float:
     """SSIM (higher is better) for evaluation. Mirrors SSIMLoss without the 1 - ... wrap."""
