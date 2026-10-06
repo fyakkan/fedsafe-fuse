@@ -1,0 +1,2289 @@
+{
+  "dataset": "brats2020_kaggle_awsaf49_v2_t1_t2_flair",
+  "seed": 42,
+  "num_clients": 3,
+  "task": "inputs (t1, t2) -> held-out target flair",
+  "preprocessing": "per-volume [0.5,99.5] brain-percentile norm; INTER_AREA 240->128; slices with >=1% tumour",
+  "test_cases": [
+    "BraTS20_Training_013",
+    "BraTS20_Training_026",
+    "BraTS20_Training_031",
+    "BraTS20_Training_033",
+    "BraTS20_Training_040",
+    "BraTS20_Training_043",
+    "BraTS20_Training_045",
+    "BraTS20_Training_058",
+    "BraTS20_Training_067",
+    "BraTS20_Training_069",
+    "BraTS20_Training_073",
+    "BraTS20_Training_080",
+    "BraTS20_Training_081",
+    "BraTS20_Training_095",
+    "BraTS20_Training_096",
+    "BraTS20_Training_098",
+    "BraTS20_Training_104",
+    "BraTS20_Training_105",
+    "BraTS20_Training_109",
+    "BraTS20_Training_125",
+    "BraTS20_Training_129",
+    "BraTS20_Training_131",
+    "BraTS20_Training_136",
+    "BraTS20_Training_154",
+    "BraTS20_Training_155",
+    "BraTS20_Training_156",
+    "BraTS20_Training_176",
+    "BraTS20_Training_184",
+    "BraTS20_Training_187",
+    "BraTS20_Training_201",
+    "BraTS20_Training_205",
+    "BraTS20_Training_210",
+    "BraTS20_Training_217",
+    "BraTS20_Training_224",
+    "BraTS20_Training_227",
+    "BraTS20_Training_237",
+    "BraTS20_Training_238",
+    "BraTS20_Training_241",
+    "BraTS20_Training_252",
+    "BraTS20_Training_261",
+    "BraTS20_Training_274",
+    "BraTS20_Training_275",
+    "BraTS20_Training_279",
+    "BraTS20_Training_291",
+    "BraTS20_Training_300",
+    "BraTS20_Training_307",
+    "BraTS20_Training_319",
+    "BraTS20_Training_331",
+    "BraTS20_Training_338",
+    "BraTS20_Training_341",
+    "BraTS20_Training_351",
+    "BraTS20_Training_356",
+    "BraTS20_Training_358",
+    "BraTS20_Training_364"
+  ],
+  "clients": [
+    {
+      "train": [
+        "BraTS20_Training_003",
+        "BraTS20_Training_004",
+        "BraTS20_Training_009",
+        "BraTS20_Training_010",
+        "BraTS20_Training_020",
+        "BraTS20_Training_021",
+        "BraTS20_Training_025",
+        "BraTS20_Training_027",
+        "BraTS20_Training_028",
+        "BraTS20_Training_029",
+        "BraTS20_Training_030",
+        "BraTS20_Training_038",
+        "BraTS20_Training_049",
+        "BraTS20_Training_050",
+        "BraTS20_Training_052",
+        "BraTS20_Training_053",
+        "BraTS20_Training_054",
+        "BraTS20_Training_056",
+        "BraTS20_Training_057",
+        "BraTS20_Training_060",
+        "BraTS20_Training_061",
+        "BraTS20_Training_062",
+        "BraTS20_Training_064",
+        "BraTS20_Training_070",
+        "BraTS20_Training_071",
+        "BraTS20_Training_078",
+        "BraTS20_Training_083",
+        "BraTS20_Training_088",
+        "BraTS20_Training_089",
+        "BraTS20_Training_090",
+        "BraTS20_Training_092",
+        "BraTS20_Training_099",
+        "BraTS20_Training_102",
+        "BraTS20_Training_110",
+        "BraTS20_Training_111",
+        "BraTS20_Training_112",
+        "BraTS20_Training_119",
+        "BraTS20_Training_128",
+        "BraTS20_Training_132",
+        "BraTS20_Training_134",
+        "BraTS20_Training_135",
+        "BraTS20_Training_138",
+        "BraTS20_Training_139",
+        "BraTS20_Training_147",
+        "BraTS20_Training_148",
+        "BraTS20_Training_152",
+        "BraTS20_Training_157",
+        "BraTS20_Training_160",
+        "BraTS20_Training_162",
+        "BraTS20_Training_163",
+        "BraTS20_Training_165",
+        "BraTS20_Training_166",
+        "BraTS20_Training_168",
+        "BraTS20_Training_170",
+        "BraTS20_Training_177",
+        "BraTS20_Training_178",
+        "BraTS20_Training_180",
+        "BraTS20_Training_182",
+        "BraTS20_Training_189",
+        "BraTS20_Training_195",
+        "BraTS20_Training_196",
+        "BraTS20_Training_197",
+        "BraTS20_Training_202",
+        "BraTS20_Training_203",
+        "BraTS20_Training_206",
+        "BraTS20_Training_211",
+        "BraTS20_Training_214",
+        "BraTS20_Training_223",
+        "BraTS20_Training_226",
+        "BraTS20_Training_228",
+        "BraTS20_Training_229",
+        "BraTS20_Training_232",
+        "BraTS20_Training_235",
+        "BraTS20_Training_240",
+        "BraTS20_Training_246",
+        "BraTS20_Training_247",
+        "BraTS20_Training_250",
+        "BraTS20_Training_255",
+        "BraTS20_Training_256",
+        "BraTS20_Training_344",
+        "BraTS20_Training_345",
+        "BraTS20_Training_346",
+        "BraTS20_Training_350",
+        "BraTS20_Training_353",
+        "BraTS20_Training_354",
+        "BraTS20_Training_355",
+        "BraTS20_Training_360",
+        "BraTS20_Training_361",
+        "BraTS20_Training_362",
+        "BraTS20_Training_363",
+        "BraTS20_Training_365",
+        "BraTS20_Training_366",
+        "BraTS20_Training_367",
+        "BraTS20_Training_368",
+        "BraTS20_Training_369"
+      ],
+      "val": [
+        "BraTS20_Training_005",
+        "BraTS20_Training_006",
+        "BraTS20_Training_034",
+        "BraTS20_Training_039",
+        "BraTS20_Training_065",
+        "BraTS20_Training_108",
+        "BraTS20_Training_130",
+        "BraTS20_Training_153",
+        "BraTS20_Training_159",
+        "BraTS20_Training_172",
+        "BraTS20_Training_173",
+        "BraTS20_Training_190",
+        "BraTS20_Training_192",
+        "BraTS20_Training_207",
+        "BraTS20_Training_258"
+      ],
+      "calib": [
+        "BraTS20_Training_001",
+        "BraTS20_Training_008",
+        "BraTS20_Training_014",
+        "BraTS20_Training_048",
+        "BraTS20_Training_075",
+        "BraTS20_Training_084",
+        "BraTS20_Training_085",
+        "BraTS20_Training_086",
+        "BraTS20_Training_093",
+        "BraTS20_Training_100",
+        "BraTS20_Training_116",
+        "BraTS20_Training_122",
+        "BraTS20_Training_124",
+        "BraTS20_Training_137",
+        "BraTS20_Training_142",
+        "BraTS20_Training_144",
+        "BraTS20_Training_149",
+        "BraTS20_Training_150",
+        "BraTS20_Training_151",
+        "BraTS20_Training_169",
+        "BraTS20_Training_175",
+        "BraTS20_Training_183",
+        "BraTS20_Training_185",
+        "BraTS20_Training_188",
+        "BraTS20_Training_193",
+        "BraTS20_Training_209",
+        "BraTS20_Training_213",
+        "BraTS20_Training_218",
+        "BraTS20_Training_220",
+        "BraTS20_Training_221",
+        "BraTS20_Training_231",
+        "BraTS20_Training_236",
+        "BraTS20_Training_253",
+        "BraTS20_Training_259",
+        "BraTS20_Training_336",
+        "BraTS20_Training_343"
+      ]
+    },
+    {
+      "train": [
+        "BraTS20_Training_002",
+        "BraTS20_Training_011",
+        "BraTS20_Training_012",
+        "BraTS20_Training_015",
+        "BraTS20_Training_016",
+        "BraTS20_Training_017",
+        "BraTS20_Training_018",
+        "BraTS20_Training_022",
+        "BraTS20_Training_023",
+        "BraTS20_Training_024",
+        "BraTS20_Training_032",
+        "BraTS20_Training_036",
+        "BraTS20_Training_037",
+        "BraTS20_Training_041",
+        "BraTS20_Training_042",
+        "BraTS20_Training_047",
+        "BraTS20_Training_051",
+        "BraTS20_Training_066",
+        "BraTS20_Training_068",
+        "BraTS20_Training_072",
+        "BraTS20_Training_076",
+        "BraTS20_Training_077",
+        "BraTS20_Training_082",
+        "BraTS20_Training_091",
+        "BraTS20_Training_094",
+        "BraTS20_Training_101",
+        "BraTS20_Training_106",
+        "BraTS20_Training_107",
+        "BraTS20_Training_117",
+        "BraTS20_Training_120",
+        "BraTS20_Training_121",
+        "BraTS20_Training_127",
+        "BraTS20_Training_140",
+        "BraTS20_Training_141",
+        "BraTS20_Training_143",
+        "BraTS20_Training_146",
+        "BraTS20_Training_158",
+        "BraTS20_Training_164",
+        "BraTS20_Training_171",
+        "BraTS20_Training_174",
+        "BraTS20_Training_179",
+        "BraTS20_Training_181",
+        "BraTS20_Training_199",
+        "BraTS20_Training_200",
+        "BraTS20_Training_216",
+        "BraTS20_Training_234",
+        "BraTS20_Training_239",
+        "BraTS20_Training_242",
+        "BraTS20_Training_243",
+        "BraTS20_Training_248",
+        "BraTS20_Training_249",
+        "BraTS20_Training_251",
+        "BraTS20_Training_254",
+        "BraTS20_Training_257",
+        "BraTS20_Training_260",
+        "BraTS20_Training_273",
+        "BraTS20_Training_292",
+        "BraTS20_Training_297",
+        "BraTS20_Training_298",
+        "BraTS20_Training_302",
+        "BraTS20_Training_303",
+        "BraTS20_Training_305",
+        "BraTS20_Training_318",
+        "BraTS20_Training_332",
+        "BraTS20_Training_337",
+        "BraTS20_Training_339",
+        "BraTS20_Training_340",
+        "BraTS20_Training_342",
+        "BraTS20_Training_347",
+        "BraTS20_Training_348",
+        "BraTS20_Training_357",
+        "BraTS20_Training_359"
+      ],
+      "val": [
+        "BraTS20_Training_019",
+        "BraTS20_Training_035",
+        "BraTS20_Training_046",
+        "BraTS20_Training_074",
+        "BraTS20_Training_114",
+        "BraTS20_Training_118",
+        "BraTS20_Training_161",
+        "BraTS20_Training_167",
+        "BraTS20_Training_191",
+        "BraTS20_Training_219",
+        "BraTS20_Training_352"
+      ],
+      "calib": [
+        "BraTS20_Training_007",
+        "BraTS20_Training_055",
+        "BraTS20_Training_059",
+        "BraTS20_Training_087",
+        "BraTS20_Training_097",
+        "BraTS20_Training_103",
+        "BraTS20_Training_113",
+        "BraTS20_Training_115",
+        "BraTS20_Training_123",
+        "BraTS20_Training_126",
+        "BraTS20_Training_133",
+        "BraTS20_Training_145",
+        "BraTS20_Training_186",
+        "BraTS20_Training_194",
+        "BraTS20_Training_198",
+        "BraTS20_Training_204",
+        "BraTS20_Training_208",
+        "BraTS20_Training_212",
+        "BraTS20_Training_215",
+        "BraTS20_Training_222",
+        "BraTS20_Training_225",
+        "BraTS20_Training_230",
+        "BraTS20_Training_244",
+        "BraTS20_Training_245",
+        "BraTS20_Training_280",
+        "BraTS20_Training_288",
+        "BraTS20_Training_295",
+        "BraTS20_Training_349"
+      ]
+    },
+    {
+      "train": [
+        "BraTS20_Training_262",
+        "BraTS20_Training_263",
+        "BraTS20_Training_264",
+        "BraTS20_Training_265",
+        "BraTS20_Training_267",
+        "BraTS20_Training_268",
+        "BraTS20_Training_271",
+        "BraTS20_Training_272",
+        "BraTS20_Training_276",
+        "BraTS20_Training_277",
+        "BraTS20_Training_278",
+        "BraTS20_Training_282",
+        "BraTS20_Training_283",
+        "BraTS20_Training_284",
+        "BraTS20_Training_287",
+        "BraTS20_Training_289",
+        "BraTS20_Training_290",
+        "BraTS20_Training_293",
+        "BraTS20_Training_294",
+        "BraTS20_Training_299",
+        "BraTS20_Training_301",
+        "BraTS20_Training_308",
+        "BraTS20_Training_312",
+        "BraTS20_Training_313",
+        "BraTS20_Training_314",
+        "BraTS20_Training_315",
+        "BraTS20_Training_316",
+        "BraTS20_Training_317",
+        "BraTS20_Training_320",
+        "BraTS20_Training_321",
+        "BraTS20_Training_325",
+        "BraTS20_Training_326",
+        "BraTS20_Training_328",
+        "BraTS20_Training_334",
+        "BraTS20_Training_335"
+      ],
+      "val": [
+        "BraTS20_Training_286",
+        "BraTS20_Training_296",
+        "BraTS20_Training_309",
+        "BraTS20_Training_311",
+        "BraTS20_Training_322"
+      ],
+      "calib": [
+        "BraTS20_Training_266",
+        "BraTS20_Training_269",
+        "BraTS20_Training_270",
+        "BraTS20_Training_281",
+        "BraTS20_Training_285",
+        "BraTS20_Training_304",
+        "BraTS20_Training_306",
+        "BraTS20_Training_310",
+        "BraTS20_Training_323",
+        "BraTS20_Training_324",
+        "BraTS20_Training_327",
+        "BraTS20_Training_329",
+        "BraTS20_Training_330",
+        "BraTS20_Training_333"
+      ]
+    }
+  ],
+  "summary": {
+    "test": {
+      "cases": 54,
+      "slices": 2754,
+      "HGG": 45,
+      "LGG": 9
+    },
+    "client0_train": {
+      "cases": 95,
+      "slices": 4636,
+      "HGG": 95,
+      "LGG": 0
+    },
+    "client0_val": {
+      "cases": 15,
+      "slices": 644,
+      "HGG": 15,
+      "LGG": 0
+    },
+    "client0_calib": {
+      "cases": 36,
+      "slices": 1775,
+      "HGG": 36,
+      "LGG": 0
+    },
+    "client1_train": {
+      "cases": 72,
+      "slices": 3337,
+      "HGG": 62,
+      "LGG": 10
+    },
+    "client1_val": {
+      "cases": 11,
+      "slices": 493,
+      "HGG": 11,
+      "LGG": 0
+    },
+    "client1_calib": {
+      "cases": 28,
+      "slices": 1296,
+      "HGG": 25,
+      "LGG": 3
+    },
+    "client2_train": {
+      "cases": 35,
+      "slices": 1705,
+      "HGG": 0,
+      "LGG": 35
+    },
+    "client2_val": {
+      "cases": 5,
+      "slices": 215,
+      "HGG": 0,
+      "LGG": 5
+    },
+    "client2_calib": {
+      "cases": 14,
+      "slices": 713,
+      "HGG": 0,
+      "LGG": 14
+    }
+  },
+  "all_meta": [
+    {
+      "case_id": "BraTS20_Training_001",
+      "grade": "HGG",
+      "n_slices": 70
+    },
+    {
+      "case_id": "BraTS20_Training_002",
+      "grade": "HGG",
+      "n_slices": 41
+    },
+    {
+      "case_id": "BraTS20_Training_003",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_004",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_005",
+      "grade": "HGG",
+      "n_slices": 15
+    },
+    {
+      "case_id": "BraTS20_Training_006",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_007",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_008",
+      "grade": "HGG",
+      "n_slices": 27
+    },
+    {
+      "case_id": "BraTS20_Training_009",
+      "grade": "HGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_010",
+      "grade": "HGG",
+      "n_slices": 39
+    },
+    {
+      "case_id": "BraTS20_Training_011",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_012",
+      "grade": "HGG",
+      "n_slices": 24
+    },
+    {
+      "case_id": "BraTS20_Training_013",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_014",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_015",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_016",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_017",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_018",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_019",
+      "grade": "HGG",
+      "n_slices": 37
+    },
+    {
+      "case_id": "BraTS20_Training_020",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_021",
+      "grade": "HGG",
+      "n_slices": 28
+    },
+    {
+      "case_id": "BraTS20_Training_022",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_023",
+      "grade": "HGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_024",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_025",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_026",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_027",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_028",
+      "grade": "HGG",
+      "n_slices": 20
+    },
+    {
+      "case_id": "BraTS20_Training_029",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_030",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_031",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_032",
+      "grade": "HGG",
+      "n_slices": 25
+    },
+    {
+      "case_id": "BraTS20_Training_033",
+      "grade": "HGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_034",
+      "grade": "HGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_035",
+      "grade": "HGG",
+      "n_slices": 42
+    },
+    {
+      "case_id": "BraTS20_Training_036",
+      "grade": "HGG",
+      "n_slices": 12
+    },
+    {
+      "case_id": "BraTS20_Training_037",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_038",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_039",
+      "grade": "HGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_040",
+      "grade": "HGG",
+      "n_slices": 56
+    },
+    {
+      "case_id": "BraTS20_Training_041",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_042",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_043",
+      "grade": "HGG",
+      "n_slices": 26
+    },
+    {
+      "case_id": "BraTS20_Training_045",
+      "grade": "HGG",
+      "n_slices": 59
+    },
+    {
+      "case_id": "BraTS20_Training_046",
+      "grade": "HGG",
+      "n_slices": 29
+    },
+    {
+      "case_id": "BraTS20_Training_047",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_048",
+      "grade": "HGG",
+      "n_slices": 22
+    },
+    {
+      "case_id": "BraTS20_Training_049",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_050",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_051",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_052",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_053",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_054",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_055",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_056",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_057",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_058",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_059",
+      "grade": "HGG",
+      "n_slices": 25
+    },
+    {
+      "case_id": "BraTS20_Training_060",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_061",
+      "grade": "HGG",
+      "n_slices": 22
+    },
+    {
+      "case_id": "BraTS20_Training_062",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_064",
+      "grade": "HGG",
+      "n_slices": 48
+    },
+    {
+      "case_id": "BraTS20_Training_065",
+      "grade": "HGG",
+      "n_slices": 22
+    },
+    {
+      "case_id": "BraTS20_Training_066",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_067",
+      "grade": "HGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_068",
+      "grade": "HGG",
+      "n_slices": 38
+    },
+    {
+      "case_id": "BraTS20_Training_069",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_070",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_071",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_072",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_073",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_074",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_075",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_076",
+      "grade": "HGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_077",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_078",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_080",
+      "grade": "HGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_081",
+      "grade": "HGG",
+      "n_slices": 28
+    },
+    {
+      "case_id": "BraTS20_Training_082",
+      "grade": "HGG",
+      "n_slices": 9
+    },
+    {
+      "case_id": "BraTS20_Training_083",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_084",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_085",
+      "grade": "HGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_086",
+      "grade": "HGG",
+      "n_slices": 19
+    },
+    {
+      "case_id": "BraTS20_Training_087",
+      "grade": "HGG",
+      "n_slices": 23
+    },
+    {
+      "case_id": "BraTS20_Training_088",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_089",
+      "grade": "HGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_090",
+      "grade": "HGG",
+      "n_slices": 30
+    },
+    {
+      "case_id": "BraTS20_Training_091",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_092",
+      "grade": "HGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_093",
+      "grade": "HGG",
+      "n_slices": 52
+    },
+    {
+      "case_id": "BraTS20_Training_094",
+      "grade": "HGG",
+      "n_slices": 20
+    },
+    {
+      "case_id": "BraTS20_Training_095",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_096",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_097",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_098",
+      "grade": "HGG",
+      "n_slices": 59
+    },
+    {
+      "case_id": "BraTS20_Training_099",
+      "grade": "HGG",
+      "n_slices": 6
+    },
+    {
+      "case_id": "BraTS20_Training_100",
+      "grade": "HGG",
+      "n_slices": 59
+    },
+    {
+      "case_id": "BraTS20_Training_101",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_102",
+      "grade": "HGG",
+      "n_slices": 23
+    },
+    {
+      "case_id": "BraTS20_Training_103",
+      "grade": "HGG",
+      "n_slices": 41
+    },
+    {
+      "case_id": "BraTS20_Training_104",
+      "grade": "HGG",
+      "n_slices": 69
+    },
+    {
+      "case_id": "BraTS20_Training_105",
+      "grade": "HGG",
+      "n_slices": 21
+    },
+    {
+      "case_id": "BraTS20_Training_106",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_107",
+      "grade": "HGG",
+      "n_slices": 32
+    },
+    {
+      "case_id": "BraTS20_Training_108",
+      "grade": "HGG",
+      "n_slices": 17
+    },
+    {
+      "case_id": "BraTS20_Training_109",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_110",
+      "grade": "HGG",
+      "n_slices": 1
+    },
+    {
+      "case_id": "BraTS20_Training_111",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_112",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_113",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_114",
+      "grade": "HGG",
+      "n_slices": 59
+    },
+    {
+      "case_id": "BraTS20_Training_115",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_116",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_117",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_118",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_119",
+      "grade": "HGG",
+      "n_slices": 29
+    },
+    {
+      "case_id": "BraTS20_Training_120",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_121",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_122",
+      "grade": "HGG",
+      "n_slices": 16
+    },
+    {
+      "case_id": "BraTS20_Training_123",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_124",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_125",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_126",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_127",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_128",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_129",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_130",
+      "grade": "HGG",
+      "n_slices": 59
+    },
+    {
+      "case_id": "BraTS20_Training_131",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_132",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_133",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_134",
+      "grade": "HGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_135",
+      "grade": "HGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_136",
+      "grade": "HGG",
+      "n_slices": 38
+    },
+    {
+      "case_id": "BraTS20_Training_137",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_138",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_139",
+      "grade": "HGG",
+      "n_slices": 17
+    },
+    {
+      "case_id": "BraTS20_Training_140",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_141",
+      "grade": "HGG",
+      "n_slices": 19
+    },
+    {
+      "case_id": "BraTS20_Training_142",
+      "grade": "HGG",
+      "n_slices": 8
+    },
+    {
+      "case_id": "BraTS20_Training_143",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_144",
+      "grade": "HGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_145",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_146",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_147",
+      "grade": "HGG",
+      "n_slices": 67
+    },
+    {
+      "case_id": "BraTS20_Training_148",
+      "grade": "HGG",
+      "n_slices": 75
+    },
+    {
+      "case_id": "BraTS20_Training_149",
+      "grade": "HGG",
+      "n_slices": 70
+    },
+    {
+      "case_id": "BraTS20_Training_150",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_151",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_152",
+      "grade": "HGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_153",
+      "grade": "HGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_154",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_155",
+      "grade": "HGG",
+      "n_slices": 77
+    },
+    {
+      "case_id": "BraTS20_Training_156",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_157",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_158",
+      "grade": "HGG",
+      "n_slices": 27
+    },
+    {
+      "case_id": "BraTS20_Training_159",
+      "grade": "HGG",
+      "n_slices": 20
+    },
+    {
+      "case_id": "BraTS20_Training_160",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_161",
+      "grade": "HGG",
+      "n_slices": 39
+    },
+    {
+      "case_id": "BraTS20_Training_162",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_163",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_164",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_165",
+      "grade": "HGG",
+      "n_slices": 72
+    },
+    {
+      "case_id": "BraTS20_Training_166",
+      "grade": "HGG",
+      "n_slices": 77
+    },
+    {
+      "case_id": "BraTS20_Training_167",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_168",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_169",
+      "grade": "HGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_170",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_171",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_172",
+      "grade": "HGG",
+      "n_slices": 35
+    },
+    {
+      "case_id": "BraTS20_Training_173",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_174",
+      "grade": "HGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_175",
+      "grade": "HGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_176",
+      "grade": "HGG",
+      "n_slices": 56
+    },
+    {
+      "case_id": "BraTS20_Training_177",
+      "grade": "HGG",
+      "n_slices": 11
+    },
+    {
+      "case_id": "BraTS20_Training_178",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_179",
+      "grade": "HGG",
+      "n_slices": 39
+    },
+    {
+      "case_id": "BraTS20_Training_180",
+      "grade": "HGG",
+      "n_slices": 70
+    },
+    {
+      "case_id": "BraTS20_Training_181",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_182",
+      "grade": "HGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_183",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_184",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_185",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_186",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_187",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_188",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_189",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_190",
+      "grade": "HGG",
+      "n_slices": 38
+    },
+    {
+      "case_id": "BraTS20_Training_191",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_192",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_193",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_194",
+      "grade": "HGG",
+      "n_slices": 48
+    },
+    {
+      "case_id": "BraTS20_Training_195",
+      "grade": "HGG",
+      "n_slices": 32
+    },
+    {
+      "case_id": "BraTS20_Training_196",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_197",
+      "grade": "HGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_198",
+      "grade": "HGG",
+      "n_slices": 50
+    },
+    {
+      "case_id": "BraTS20_Training_199",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_200",
+      "grade": "HGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_201",
+      "grade": "HGG",
+      "n_slices": 73
+    },
+    {
+      "case_id": "BraTS20_Training_202",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_203",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_204",
+      "grade": "HGG",
+      "n_slices": 17
+    },
+    {
+      "case_id": "BraTS20_Training_205",
+      "grade": "HGG",
+      "n_slices": 25
+    },
+    {
+      "case_id": "BraTS20_Training_206",
+      "grade": "HGG",
+      "n_slices": 19
+    },
+    {
+      "case_id": "BraTS20_Training_207",
+      "grade": "HGG",
+      "n_slices": 39
+    },
+    {
+      "case_id": "BraTS20_Training_208",
+      "grade": "HGG",
+      "n_slices": 72
+    },
+    {
+      "case_id": "BraTS20_Training_209",
+      "grade": "HGG",
+      "n_slices": 35
+    },
+    {
+      "case_id": "BraTS20_Training_210",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_211",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_212",
+      "grade": "HGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_213",
+      "grade": "HGG",
+      "n_slices": 37
+    },
+    {
+      "case_id": "BraTS20_Training_214",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_215",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_216",
+      "grade": "HGG",
+      "n_slices": 39
+    },
+    {
+      "case_id": "BraTS20_Training_217",
+      "grade": "HGG",
+      "n_slices": 23
+    },
+    {
+      "case_id": "BraTS20_Training_218",
+      "grade": "HGG",
+      "n_slices": 50
+    },
+    {
+      "case_id": "BraTS20_Training_219",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_220",
+      "grade": "HGG",
+      "n_slices": 50
+    },
+    {
+      "case_id": "BraTS20_Training_221",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_222",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_223",
+      "grade": "HGG",
+      "n_slices": 67
+    },
+    {
+      "case_id": "BraTS20_Training_224",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_225",
+      "grade": "HGG",
+      "n_slices": 67
+    },
+    {
+      "case_id": "BraTS20_Training_226",
+      "grade": "HGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_227",
+      "grade": "HGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_228",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_229",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_230",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_231",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_232",
+      "grade": "HGG",
+      "n_slices": 48
+    },
+    {
+      "case_id": "BraTS20_Training_234",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_235",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_236",
+      "grade": "HGG",
+      "n_slices": 78
+    },
+    {
+      "case_id": "BraTS20_Training_237",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_238",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_239",
+      "grade": "HGG",
+      "n_slices": 41
+    },
+    {
+      "case_id": "BraTS20_Training_240",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_241",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_242",
+      "grade": "HGG",
+      "n_slices": 35
+    },
+    {
+      "case_id": "BraTS20_Training_243",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_244",
+      "grade": "HGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_245",
+      "grade": "HGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_246",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_247",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_248",
+      "grade": "HGG",
+      "n_slices": 52
+    },
+    {
+      "case_id": "BraTS20_Training_249",
+      "grade": "HGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_250",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_251",
+      "grade": "HGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_252",
+      "grade": "HGG",
+      "n_slices": 67
+    },
+    {
+      "case_id": "BraTS20_Training_253",
+      "grade": "HGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_254",
+      "grade": "HGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_255",
+      "grade": "HGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_256",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_257",
+      "grade": "HGG",
+      "n_slices": 50
+    },
+    {
+      "case_id": "BraTS20_Training_258",
+      "grade": "HGG",
+      "n_slices": 52
+    },
+    {
+      "case_id": "BraTS20_Training_259",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_260",
+      "grade": "LGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_261",
+      "grade": "LGG",
+      "n_slices": 71
+    },
+    {
+      "case_id": "BraTS20_Training_262",
+      "grade": "LGG",
+      "n_slices": 42
+    },
+    {
+      "case_id": "BraTS20_Training_263",
+      "grade": "LGG",
+      "n_slices": 28
+    },
+    {
+      "case_id": "BraTS20_Training_264",
+      "grade": "LGG",
+      "n_slices": 25
+    },
+    {
+      "case_id": "BraTS20_Training_265",
+      "grade": "LGG",
+      "n_slices": 42
+    },
+    {
+      "case_id": "BraTS20_Training_266",
+      "grade": "LGG",
+      "n_slices": 36
+    },
+    {
+      "case_id": "BraTS20_Training_267",
+      "grade": "LGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_268",
+      "grade": "LGG",
+      "n_slices": 18
+    },
+    {
+      "case_id": "BraTS20_Training_269",
+      "grade": "LGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_270",
+      "grade": "LGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_271",
+      "grade": "LGG",
+      "n_slices": 41
+    },
+    {
+      "case_id": "BraTS20_Training_272",
+      "grade": "LGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_273",
+      "grade": "LGG",
+      "n_slices": 67
+    },
+    {
+      "case_id": "BraTS20_Training_274",
+      "grade": "LGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_275",
+      "grade": "LGG",
+      "n_slices": 29
+    },
+    {
+      "case_id": "BraTS20_Training_276",
+      "grade": "LGG",
+      "n_slices": 37
+    },
+    {
+      "case_id": "BraTS20_Training_277",
+      "grade": "LGG",
+      "n_slices": 26
+    },
+    {
+      "case_id": "BraTS20_Training_278",
+      "grade": "LGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_279",
+      "grade": "LGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_280",
+      "grade": "LGG",
+      "n_slices": 30
+    },
+    {
+      "case_id": "BraTS20_Training_281",
+      "grade": "LGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_282",
+      "grade": "LGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_283",
+      "grade": "LGG",
+      "n_slices": 37
+    },
+    {
+      "case_id": "BraTS20_Training_284",
+      "grade": "LGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_285",
+      "grade": "LGG",
+      "n_slices": 50
+    },
+    {
+      "case_id": "BraTS20_Training_286",
+      "grade": "LGG",
+      "n_slices": 24
+    },
+    {
+      "case_id": "BraTS20_Training_287",
+      "grade": "LGG",
+      "n_slices": 32
+    },
+    {
+      "case_id": "BraTS20_Training_288",
+      "grade": "LGG",
+      "n_slices": 38
+    },
+    {
+      "case_id": "BraTS20_Training_289",
+      "grade": "LGG",
+      "n_slices": 70
+    },
+    {
+      "case_id": "BraTS20_Training_290",
+      "grade": "LGG",
+      "n_slices": 73
+    },
+    {
+      "case_id": "BraTS20_Training_291",
+      "grade": "LGG",
+      "n_slices": 79
+    },
+    {
+      "case_id": "BraTS20_Training_292",
+      "grade": "LGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_293",
+      "grade": "LGG",
+      "n_slices": 75
+    },
+    {
+      "case_id": "BraTS20_Training_294",
+      "grade": "LGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_295",
+      "grade": "LGG",
+      "n_slices": 25
+    },
+    {
+      "case_id": "BraTS20_Training_296",
+      "grade": "LGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_297",
+      "grade": "LGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_298",
+      "grade": "LGG",
+      "n_slices": 34
+    },
+    {
+      "case_id": "BraTS20_Training_299",
+      "grade": "LGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_300",
+      "grade": "LGG",
+      "n_slices": 52
+    },
+    {
+      "case_id": "BraTS20_Training_301",
+      "grade": "LGG",
+      "n_slices": 73
+    },
+    {
+      "case_id": "BraTS20_Training_302",
+      "grade": "LGG",
+      "n_slices": 56
+    },
+    {
+      "case_id": "BraTS20_Training_303",
+      "grade": "LGG",
+      "n_slices": 32
+    },
+    {
+      "case_id": "BraTS20_Training_304",
+      "grade": "LGG",
+      "n_slices": 26
+    },
+    {
+      "case_id": "BraTS20_Training_305",
+      "grade": "LGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_306",
+      "grade": "LGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_307",
+      "grade": "LGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_308",
+      "grade": "LGG",
+      "n_slices": 66
+    },
+    {
+      "case_id": "BraTS20_Training_309",
+      "grade": "LGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_310",
+      "grade": "LGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_311",
+      "grade": "LGG",
+      "n_slices": 27
+    },
+    {
+      "case_id": "BraTS20_Training_312",
+      "grade": "LGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_313",
+      "grade": "LGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_314",
+      "grade": "LGG",
+      "n_slices": 27
+    },
+    {
+      "case_id": "BraTS20_Training_315",
+      "grade": "LGG",
+      "n_slices": 30
+    },
+    {
+      "case_id": "BraTS20_Training_316",
+      "grade": "LGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_317",
+      "grade": "LGG",
+      "n_slices": 21
+    },
+    {
+      "case_id": "BraTS20_Training_318",
+      "grade": "LGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_319",
+      "grade": "LGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_320",
+      "grade": "LGG",
+      "n_slices": 32
+    },
+    {
+      "case_id": "BraTS20_Training_321",
+      "grade": "LGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_322",
+      "grade": "LGG",
+      "n_slices": 46
+    },
+    {
+      "case_id": "BraTS20_Training_323",
+      "grade": "LGG",
+      "n_slices": 64
+    },
+    {
+      "case_id": "BraTS20_Training_324",
+      "grade": "LGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_325",
+      "grade": "LGG",
+      "n_slices": 17
+    },
+    {
+      "case_id": "BraTS20_Training_326",
+      "grade": "LGG",
+      "n_slices": 69
+    },
+    {
+      "case_id": "BraTS20_Training_327",
+      "grade": "LGG",
+      "n_slices": 61
+    },
+    {
+      "case_id": "BraTS20_Training_328",
+      "grade": "LGG",
+      "n_slices": 91
+    },
+    {
+      "case_id": "BraTS20_Training_329",
+      "grade": "LGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_330",
+      "grade": "LGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_331",
+      "grade": "LGG",
+      "n_slices": 29
+    },
+    {
+      "case_id": "BraTS20_Training_332",
+      "grade": "LGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_333",
+      "grade": "LGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_334",
+      "grade": "LGG",
+      "n_slices": 54
+    },
+    {
+      "case_id": "BraTS20_Training_335",
+      "grade": "LGG",
+      "n_slices": 68
+    },
+    {
+      "case_id": "BraTS20_Training_336",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_337",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_338",
+      "grade": "HGG",
+      "n_slices": 56
+    },
+    {
+      "case_id": "BraTS20_Training_339",
+      "grade": "HGG",
+      "n_slices": 62
+    },
+    {
+      "case_id": "BraTS20_Training_340",
+      "grade": "HGG",
+      "n_slices": 44
+    },
+    {
+      "case_id": "BraTS20_Training_341",
+      "grade": "HGG",
+      "n_slices": 11
+    },
+    {
+      "case_id": "BraTS20_Training_342",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_343",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_344",
+      "grade": "HGG",
+      "n_slices": 43
+    },
+    {
+      "case_id": "BraTS20_Training_345",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_346",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_347",
+      "grade": "HGG",
+      "n_slices": 57
+    },
+    {
+      "case_id": "BraTS20_Training_348",
+      "grade": "HGG",
+      "n_slices": 49
+    },
+    {
+      "case_id": "BraTS20_Training_349",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_350",
+      "grade": "HGG",
+      "n_slices": 69
+    },
+    {
+      "case_id": "BraTS20_Training_351",
+      "grade": "HGG",
+      "n_slices": 53
+    },
+    {
+      "case_id": "BraTS20_Training_352",
+      "grade": "HGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_353",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_354",
+      "grade": "HGG",
+      "n_slices": 63
+    },
+    {
+      "case_id": "BraTS20_Training_355",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_356",
+      "grade": "HGG",
+      "n_slices": 40
+    },
+    {
+      "case_id": "BraTS20_Training_357",
+      "grade": "HGG",
+      "n_slices": 33
+    },
+    {
+      "case_id": "BraTS20_Training_358",
+      "grade": "HGG",
+      "n_slices": 58
+    },
+    {
+      "case_id": "BraTS20_Training_359",
+      "grade": "HGG",
+      "n_slices": 51
+    },
+    {
+      "case_id": "BraTS20_Training_360",
+      "grade": "HGG",
+      "n_slices": 41
+    },
+    {
+      "case_id": "BraTS20_Training_361",
+      "grade": "HGG",
+      "n_slices": 47
+    },
+    {
+      "case_id": "BraTS20_Training_362",
+      "grade": "HGG",
+      "n_slices": 65
+    },
+    {
+      "case_id": "BraTS20_Training_363",
+      "grade": "HGG",
+      "n_slices": 55
+    },
+    {
+      "case_id": "BraTS20_Training_364",
+      "grade": "HGG",
+      "n_slices": 60
+    },
+    {
+      "case_id": "BraTS20_Training_365",
+      "grade": "HGG",
+      "n_slices": 56
+    },
+    {
+      "case_id": "BraTS20_Training_366",
+      "grade": "HGG",
+      "n_slices": 31
+    },
+    {
+      "case_id": "BraTS20_Training_367",
+      "grade": "HGG",
+      "n_slices": 56
+    },
+    {
+      "case_id": "BraTS20_Training_368",
+      "grade": "HGG",
+      "n_slices": 45
+    },
+    {
+      "case_id": "BraTS20_Training_369",
+      "grade": "HGG",
+      "n_slices": 91
+    }
+  ]
+}

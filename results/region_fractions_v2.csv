@@ -1,0 +1,5 @@
+split,n_slices,frac_background,frac_interior,frac_boundary,tumour_px_in_boundary
+test,2754,0.741,0.1002,0.1589,0.578
+client0_calib,1775,0.7351,0.1139,0.151,0.6124
+client1_calib,1296,0.7433,0.0952,0.1615,0.6155
+client2_calib,713,0.7391,0.1409,0.12,0.4494
