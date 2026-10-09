@@ -111,6 +111,47 @@ def region_map(
     return out
 
 
+def region_map_gradient(
+    guide: np.ndarray,
+    brain_mask: np.ndarray,
+    boundary_frac: float = 0.25,
+    sigma: float = 1.0,
+) -> np.ndarray:
+    """Background / interior / boundary labels with a fixed boundary share.
+
+    Boundary = the ``boundary_frac`` brain pixels with the largest gradient
+    magnitude of the Gaussian-smoothed ``guide`` (input-only, e.g.
+    0.5 * (T1 + T2)). Unlike fixed Canny thresholds, the boundary share does
+    not depend on the dataset's intensity scale or texture.
+    """
+    import cv2
+
+    brain = brain_mask.astype(bool)
+    out = np.full(guide.shape, REGION_BACKGROUND, dtype=np.uint8)
+    if not brain.any():
+        return out
+    g = cv2.GaussianBlur(guide.astype(np.float32), (0, 0), sigma)
+    mag = np.hypot(cv2.Sobel(g, cv2.CV_32F, 1, 0, ksize=3), cv2.Sobel(g, cv2.CV_32F, 0, 1, ksize=3))
+    thr = np.quantile(mag[brain], 1.0 - boundary_frac)
+    out[brain] = REGION_INTERIOR
+    out[brain & (mag > thr)] = REGION_BOUNDARY
+    return out
+
+
+def tumour_boundary_band(seg: np.ndarray, width: int = 1) -> np.ndarray:
+    """Band of +-``width`` pixels around the tumour outline (seg > 0).
+
+    Used only at calibration time (conformal risk control); never at inference.
+    """
+    import cv2
+
+    t = (seg > 0).astype(np.uint8)
+    if not t.any():
+        return np.zeros(seg.shape, dtype=bool)
+    k = np.ones((3, 3), np.uint8)
+    return (cv2.dilate(t, k, iterations=width) > 0) & ~(cv2.erode(t, k, iterations=width) > 0)
+
+
 def region_fractions(labels: Sequence[np.ndarray]) -> dict:
     """Pixel fraction per region, pooled over a list of label maps."""
     counts = np.zeros(3, dtype=np.int64)

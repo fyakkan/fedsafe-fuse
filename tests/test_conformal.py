@@ -135,3 +135,26 @@ def test_clopper_pearson_and_bootstrap():
     assert cp.clopper_pearson(0, 10)[0] == 0.0 and cp.clopper_pearson(10, 10)[1] == 1.0
     lo, hi = cp.cluster_bootstrap_coverage(np.full(30, 90), np.full(30, 100))
     assert lo == hi == 0.9
+
+
+def test_region_map_gradient_fixed_share_and_edges():
+    img = np.zeros((64, 64), np.float32)
+    img[8:56, 8:56] = 0.5
+    img[24:40, 24:40] = 0.9            # internal edge
+    brain = img > 0
+    lab = cp.region_map_gradient(img, brain, boundary_frac=0.25)
+    assert np.all(lab[~brain] == cp.REGION_BACKGROUND)
+    share = (lab == cp.REGION_BOUNDARY).sum() / brain.sum()
+    assert 0.15 <= share <= 0.25
+    assert lab[24, 32] == cp.REGION_BOUNDARY   # on the internal edge
+    assert lab[16, 16] == cp.REGION_INTERIOR   # flat area
+    # empty brain -> all background, no crash
+    assert np.all(cp.region_map_gradient(img, np.zeros_like(brain)) == cp.REGION_BACKGROUND)
+
+
+def test_tumour_boundary_band():
+    seg = np.zeros((32, 32), np.uint8)
+    seg[10:20, 10:20] = 2
+    band = cp.tumour_boundary_band(seg)
+    assert band[10, 15] and band[9, 15] and not band[15, 15] and not band[2, 2]
+    assert not cp.tumour_boundary_band(np.zeros_like(seg)).any()
