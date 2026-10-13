@@ -3,28 +3,19 @@
 
 % --- Packages ---
 \usepackage{cite}
-\usepackage{amsmath,amssymb,amsfonts}
-\usepackage{algorithmic}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
 \usepackage{graphicx}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage[hidelinks]{hyperref}
 \usepackage{url}
-\usepackage{tikz}
-\usetikzlibrary{arrows.meta, positioning, fit, backgrounds}
 
-\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
-    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
-
-% --- Custom commands ---
-\newcommand{\TBD}[1]{\textcolor{red}{\textbf{[TBD: #1]}}}
-\newcommand{\Mbytes}{\,\text{MB}}
-\newcommand{\compressratio}{154{,}109\times}
+\newtheorem{proposition}{Proposition}
 
 \begin{document}
 
-\title{FedSafe-Fuse: Privacy-Preserving Federated\\Medical Image Fusion with\\Spatially-Aware Conformal Uncertainty}
+\title{Federated Conformal Uncertainty for\\Held-Out-Sequence Brain MRI Synthesis:\\Patient-Level Guarantees and Tumour-Boundary Risk Control}
 
 \author{
 \IEEEauthorblockN{Furkan Yakkan}
@@ -37,299 +28,149 @@ Email: furkan.yakkan@agu.edu.tr}
 
 % =========================================================
 \begin{abstract}
-Federated multi-modal medical image fusion lets multiple hospitals jointly train a single fusion model without sharing raw patient images, but two unresolved gaps limit clinical deployment. First, exchanged gradients still leak training data via inversion attacks. Second, even a well-trained fusion model produces outputs that clinicians cannot calibrate per-pixel. We present \textit{FedSafe-Fuse}, a federated framework that contributes two complementary safety mechanisms, demonstrated through a lightweight Transformer--CNN fusion backbone: (1) Federated Random Orthonormal Projection (FROP), an orthonormal rank-$d$ projection of gradient deltas that compresses upstream traffic from 59\,MB/round (DP-SGD baseline) to 384 bytes/round (rank-32), and (2) Spatially-Aware Conformal Prediction (SACP), which uses Canny-edge region splitting to produce regional, distribution-free uncertainty thresholds with finite-sample coverage guarantees. We evaluate on both synthetic MedMNIST OrganAMNIST and \textbf{real multi-modal BraTS~2020} (T1/T2) under non-IID (K=3, T=50) federated training. The fusion task itself converges to high fidelity (SSIM~$0.996{\pm}0.001$ over 5 seeds on BraTS), confirming the pipeline. FROP is a compression-and-obfuscation mechanism rather than a formal privacy mechanism: under a stated honest-but-curious threat model in which the adversary knows the projection basis, it matches DP-SGD's \emph{empirical} inversion (DLG) resistance (reconstruction SSIM~$\leq$~0.013 vs.~0.999 with raw gradients) at roughly five orders of magnitude lower upstream bandwidth, and we make no $(\varepsilon,\delta)$ claim for it. We reserve formal privacy for where it applies, reporting R\'enyi-DP accounting ($\varepsilon\!\approx\!6.2$ at $\delta\!=\!10^{-5}$) for the DP-SGD baseline, alongside a full-backbone DLG analysis. SACP attains target coverage on both datasets, with the clinically expected wider-at-boundary intervals emerging on the well-trained model. We characterise honestly the resulting tension between extreme compression and fusion quality. Code and reproducible scripts are available at \url{https://github.com/fyakkan/fedsafe-fuse}.
+Networks that combine several MRI sequences into an image of another sequence produce outputs whose errors are invisible to the reader, and in multi-site settings the data needed to calibrate those errors stays at the sites. We study distribution-free uncertainty for a federated model that predicts FLAIR from T1 and T2 on BraTS~2020 (365 patients, three tumour-grade-skewed clients). Because FLAIR is never an input, the residual $|f-\text{FLAIR}|$ is a genuine predictive error rather than a quantity computable at test time. We provide (i) an \emph{exact} patient-level guarantee --- with probability $\geq 1-\alpha$ a new patient has $\geq 90\,\%$ of its brain pixels inside the interval --- that does not rely on pixel independence, (ii) federated calibration in which clients release only integer counts, yielding thresholds bit-identical to pooled calibration (135/135 checks, $\leq 62$ rounds), and (iii) conformal risk control of the miss rate on the tumour boundary, which needs tumour labels only at calibration. On 54 held-out test patients and 5 FedAvg seeds, patient-level coverage at $\alpha{=}0.10$ is $0.941$ (Clopper--Pearson 95\,\% CI $[0.84, 0.99]$); pooling lets the smallest client (14 patients) use intervals 29\,\% narrower than it can calibrate alone and enables $\alpha{=}0.05$, which it cannot reach alone; risk control lowers tumour-boundary miscoverage from $0.109$ to $0.079$. Input degradation is absorbed by matched recalibration, whereas clean thresholds under-cover degraded inputs ($0.867$ at $\alpha{=}0.10$). A negative finding: splitting pixels into input-defined interior/boundary regions does not narrow intervals, because errors concentrate in lesions, not at input edges.
 \end{abstract}
 
 \begin{IEEEkeywords}
-federated learning, medical image fusion, conformal prediction, differential privacy, uncertainty quantification, gradient inversion
+conformal prediction, conformal risk control, federated learning, MRI synthesis, uncertainty quantification, brain tumour
 \end{IEEEkeywords}
 
 % =========================================================
 \section{Introduction}
 \label{sec:intro}
 
-Multi-modal medical image fusion combines the structural detail of an MRI volume with the metabolic information of a PET volume into a single representation that supports diagnosis, planning, and follow-up~\cite{zhang2021ifcnn,xu2022u2fusion}. Deep fusion networks achieve strong results, but they require large, centrally aggregated multi-institutional datasets, which conflicts with patient-privacy regulations such as HIPAA and GDPR. Federated learning~\cite{mcmahan2017fedavg,li2020fedprox} addresses the data-movement constraint by training a shared model across decentralised hospital nodes, but it introduces two new clinical problems.
+Clinical brain-tumour MRI protocols acquire several sequences (T1, T1ce, T2, FLAIR), and networks that combine available sequences into another --- variously framed as multi-sequence fusion or missing-sequence synthesis~\cite{dar2019pgan,zhang2021ifcnn,tang2022matr} --- are attractive when a sequence is missing, corrupted or too costly to acquire. Their failure mode is dangerous precisely because the output looks plausible: an under-estimated oedema or a smoothed lesion margin cannot be detected by inspecting the image. A deployable model should therefore attach to each output an error bar with a statistical guarantee, and in a multi-site setting it must be trained and calibrated without moving patient images between hospitals~\cite{mcmahan2017fedavg}.
 
-First, the gradients or weight deltas exchanged at each communication round are themselves leaky: Zhu \textit{et al.}~\cite{zhu2019dlg} showed that small-batch training images can be reconstructed from raw gradients with near-perfect fidelity. Standard DP-SGD~\cite{abadi2016dpsgd} mitigates this by clipping per-batch gradients and adding Gaussian noise, but the noise scale needed to block inversion attacks also destroys utility on small-batch federated medical workloads.
+Split conformal prediction~\cite{vovk2005alrw,lei2018distribution} gives distribution-free, finite-sample guarantees and has been extended to image-to-image regression~\cite{angelopoulos2022im2im} and to risk control over images~\cite{angelopoulos2022crc,teneggi2023krcps}. Three issues arise when it is used for multi-sequence MRI. (a) The guarantee is only meaningful if the target is not a function of the inputs: if the ``ground truth'' is, e.g., a weighted average of the input sequences, the residual can be computed exactly at test time and a conformal interval for it is vacuous. (b) Pixels within an image are strongly dependent, so a pixel-level quantile does not carry the usual exchangeability guarantee. (c) Calibration data are held by different sites with different case mixes; small sites may not have enough patients to calibrate alone~\cite{lu2023fedcp}.
 
-Second, even a fully converged fusion network produces pixel-level outputs that clinicians cannot trust uniformly. Fused images often exhibit hallucinations or boundary ambiguity, especially in out-of-distribution cases or in regions affected by cross-institutional data heterogeneity. A clinically deployable fusion model should therefore augment every fused output with a per-pixel measure of how reliable the model believes that pixel to be, and that measure should come with a distribution-free statistical guarantee.
-
-\noindent\textbf{Contributions.} This paper presents \textit{FedSafe-Fuse}, a federated framework whose primary contributions are two privacy/uncertainty mechanisms; the fusion backbone is the vehicle through which we demonstrate and stress-test them.
+\noindent\textbf{Contributions.}
 \begin{itemize}
-    \item \textbf{Federated Random Orthonormal Projection (FROP)} for gradient-level communication and empirical inversion resistance: each client's weight delta is projected onto a deterministic, shared orthonormal rank-$d$ subspace before transmission. FROP is a low-rank compression-and-obfuscation mechanism, \emph{not} a differential-privacy mechanism: it carries no $(\varepsilon,\delta)$ guarantee. What it does provide is (i) a five-orders-of-magnitude reduction in upstream payload, from 59.18\,MB/round to as little as 192 bytes/round at $d{=}16$, and (ii) empirical resistance to gradient-inversion (DLG) matching that of the DP-SGD baseline (reconstruction SSIM~$\leq$~0.013) under the threat model of Section~\ref{ssec:threat}.
-    \item \textbf{Spatially-Aware Conformal Prediction (SACP)}: separate (1-$\alpha$)-quantile thresholds are calibrated on interior vs.~boundary pixel populations identified by Canny edge detection on the reference composite, yielding distribution-free finite-sample coverage that we validate on both synthetic and real data.
-    \item \textbf{A privacy analysis that covers the deployed model and a formal DP comparison.} We run DLG against the full 4.9\,M-parameter backbone and find that, at batch~1, it barely leaks even \emph{without} protection (SSIM~$\approx$~0.06) --- so the deployed model is not itself in the easily-invertible regime; the leaky regime is the small-model/small-batch surrogate that motivates the general concern. We report gradient-leakage proxies as \emph{heuristic} evidence (not a formal bound) that larger models are no easier to invert, and add R\'enyi-DP accounting for the DP-SGD baseline.
-    \item \textbf{Evaluation on real multi-modal BraTS~2020} (T1/T2) alongside MedMNIST, showing the federated fusion task converges to SSIM~$0.996{\pm}0.001$ (mean$\pm$std over 5 seeds), and an honest characterisation --- including a negative result on error-feedback --- of the trade-off between extreme gradient compression and fusion quality.
-    \item A complete reproducibility pipeline: every notebook, trained checkpoints, per-pixel conformity scores, the DP accountant, and CSV results are released so any reader can recompute every table without retraining.
+    \item A \textbf{held-out-target protocol} for multi-sequence MRI on BraTS~2020: T1 and T2 are the inputs and FLAIR, never seen at inference, is the target, so the conformal score is a genuine predictive residual.
+    \item \textbf{Two clearly separated guarantee levels}: an exact patient-level guarantee whose exchangeable unit is the patient, and approximate pixel-level per-region (Mondrian~\cite{vovk2005alrw}) thresholds that we validate empirically and label as such.
+    \item \textbf{Count-only federated calibration} that reproduces the pooled conformal quantile bit-for-bit, and evidence that its main value is for small clients: per-client calibration is wider or infeasible at small $n$.
+    \item \textbf{Conformal risk control on the tumour boundary}, using tumour labels only at calibration, which brings the boundary miss rate below the target where plain thresholds exceed it.
+    \item \textbf{Honest negative findings}: input-defined boundary regions do not localise the model's errors, and a random-projection update compressor we previously proposed does not train at all (Section~\ref{ssec:frop}).
 \end{itemize}
 
 % =========================================================
 \section{Related Work}
 \label{sec:related}
 
-\noindent\textbf{Federated learning.} FedAvg~\cite{mcmahan2017fedavg} formalised parameter-averaging FL. FedProx~\cite{li2020fedprox} introduced a proximal regulariser to handle non-IID client distributions, and a wide range of subsequent works added secure aggregation, robust aggregation, or personalisation. Our implementation uses a single-process FedAvg simulator that mirrors the round structure of Flower~\cite{beutel2020flower} so the algorithm can be ported to the real Flower runtime without changing the experimental protocol.
+\noindent\textbf{Multi-sequence fusion and synthesis.} IFCNN~\cite{zhang2021ifcnn} and U2Fusion~\cite{xu2022u2fusion} are general CNN fusion frameworks; MATR~\cite{tang2022matr} uses a multiscale adaptive Transformer for multimodal medical image fusion; conditional GANs synthesise missing MRI contrasts from available ones~\cite{dar2019pgan}. Federated multimodal medical image fusion has recently been studied by FLMMIF~\cite{meng2026flmmif} and FEMMIF~\cite{alabduljabbar2026femmif}; neither provides calibrated uncertainty. We deliberately use a small, standard backbone (IFCNN) because our contribution is the uncertainty layer, not the predictor.
 
-\noindent\textbf{Medical image fusion.} IFCNN~\cite{zhang2021ifcnn} introduced a general two-stream CNN with element-wise fusion rules; we use it as a non-private federated baseline. U2Fusion~\cite{xu2022u2fusion} added unsupervised fusion via a quality-aware loss. More recent work has explored Transformer-CNN hybrids~\cite{tang2023semantic}; our backbone follows this design philosophy with a deliberately small footprint suited to federated communication budgets.
+\noindent\textbf{Conformal prediction for images.} Split conformal prediction~\cite{vovk2005alrw,lei2018distribution} calibrates a threshold on held-out scores. Angelopoulos \textit{et al.}~\cite{angelopoulos2022im2im} give image-to-image intervals that, with high probability, bound the expected fraction of pixels falling outside them; conformal risk control (CRC)~\cite{angelopoulos2022crc} controls the expectation of any bounded monotone loss, and K-RCPS~\cite{teneggi2023krcps} optimises spatially varying intervals for diffusion models. Mondrian conformal prediction~\cite{vovk2005alrw} calibrates separately within categories, which is the basis of our per-region thresholds.
 
-\noindent\textbf{Gradient-level privacy.} DP-SGD~\cite{abadi2016dpsgd} clips and noises per-batch gradients to achieve $(\varepsilon, \delta)$-differential privacy. The deep leakage from gradients (DLG) attack~\cite{zhu2019dlg} demonstrates that unprotected gradients leak training data with near-perfect fidelity, motivating the protections we evaluate.
-
-\noindent\textbf{Conformal prediction.} Vovk \textit{et al.}~\cite{vovk2005alrw} established conformal methods for distribution-free prediction sets with finite-sample coverage guarantees. Angelopoulos \textit{et al.}~\cite{angelopoulos2022cv} extended conformal methods to dense prediction tasks in computer vision. To our knowledge no prior work has combined federated training, gradient-level projection privacy, and spatially-aware conformal calibration in the medical-fusion setting.
+\noindent\textbf{Federated learning and conformal prediction.} FedAvg~\cite{mcmahan2017fedavg} and FedProx~\cite{li2020fedprox} train shared models without moving data; secure aggregation~\cite{bonawitz2017secagg} reveals only sums of client messages. Lu \textit{et al.}~\cite{lu2023fedcp} study conformal prediction when calibration data are distributed across clients under partial exchangeability. Our federated calibration targets the exact pooled quantile with integer messages only.
 
 % =========================================================
-\section{Methodology}
+\section{Method}
 \label{sec:method}
 
-FedSafe-Fuse consists of four tightly integrated components: a lightweight fusion backbone, FROP-protected federated aggregation, region-aware SACP calibration, and inference-time uncertainty mapping. Figure~\ref{fig:pipeline} summarises the end-to-end pipeline.
+\subsection{Task and model}
+Each sample is an axial slice with inputs $x=(\text{T1},\text{T2})$ and target $y=\text{FLAIR}$, all scaled to $[0,1]$. The predictor $f$ is a two-stream IFCNN~\cite{zhang2021ifcnn} (316\,k parameters, element-wise max fusion, sigmoid output) whose output is multiplied by the input-derived brain mask $M=(\text{T1}>0)\lor(\text{T2}>0)$. Without this mask a sigmoid can never output exactly 0 on the $\approx 73\,\%$ air background, where trivial baselines are exactly 0. The loss is $\|f-y\|_1 + (1-\text{SSIM}(f,y))$.
 
-\begin{figure}[t]
-\centering
-\begin{tikzpicture}[
-    font=\scriptsize,
-    box/.style={draw, rounded corners, align=center, inner sep=3pt,
-                minimum height=6mm, fill=blue!5},
-    fed/.style={box, fill=green!8},
-    cal/.style={box, fill=orange!8},
-    inf/.style={box, fill=purple!8},
-    arr/.style={-{Latex[length=1.6mm]}, thick},
-    node distance=2.6mm and 4mm,
-]
-% Phase 1: federated training
-\node[fed] (clients) {Clients $1\ldots K$\\(MRI + PET)};
-\node[fed, right=of clients] (local) {Local train\\(encoders +\\Transformer)};
-\node[fed, below=of local] (fipca) {FROP\\rank-$d$ projection};
-\node[fed, left=of fipca] (agg) {FedAvg\\aggregation};
-\draw[arr] (clients) -- (local);
-\draw[arr] (local) -- (fipca);
-\draw[arr] (fipca) -- (agg);
-\draw[arr] (agg) -- (clients) node[midway, left, font=\tiny] {$T$ rounds};
+\subsection{Federated training}
+$K$ clients run FedAvg~\cite{mcmahan2017fedavg}: each round every client trains one local epoch on a random subset of its slices starting from the global weights, and the server averages the weight deltas, including BatchNorm running statistics. A centralised reference uses the same trainer with all client training data pooled into one client.
 
-% Phase 2: SACP calibration
-\node[cal, below=7mm of agg] (calib) {Held-out\\calibration set};
-\node[cal, right=of calib] (score) {Per-pixel\\$|f-r|$};
-\node[cal, right=of score] (thr) {Interior /\\boundary\\thresholds};
-\draw[arr] (agg) -- (calib);
-\draw[arr] (calib) -- (score);
-\draw[arr] (score) -- (thr);
+\subsection{Scores and input-only regions}
+The score of pixel $i$ is $r_i=|f(x)_i-y_i|$. Each pixel receives a region label computed from the inputs only: \emph{background} ($i\notin M$), \emph{boundary} (the 25\,\% of brain pixels with the largest gradient magnitude of the Gaussian-smoothed ($\sigma{=}1$) guide $\tfrac12(\text{T1}+\text{T2})$), and \emph{interior} (the rest of $M$). Fixing the boundary share avoids dataset-specific edge thresholds; Canny~\cite{canny1986edge} with fixed thresholds 50/100 is reported as a sensitivity check.
 
-% Phase 3: inference
-\node[inf, below=7mm of calib] (new) {New\\MRI + PET};
-\node[inf, right=of new] (fused) {Fused image};
-\node[inf, right=of fused] (heat) {Uncertainty\\heatmap};
-\draw[arr] (new) -- (fused);
-\draw[arr] (fused) -- (heat);
-\draw[arr] (thr) -- (heat);
+\subsection{Two guarantee levels}
+For scores $s_1,\dots,s_n$ the split-conformal threshold is the order statistic $\hat q_\alpha=s_{(k)}$ with $k=\lceil (n+1)(1-\alpha)\rceil$ ($\hat q_\alpha=\infty$ if $k>n$)~\cite{lei2018distribution}.
 
-% Phase labels
-\node[anchor=west, font=\tiny\bfseries] at (clients.north west) {};
-\end{tikzpicture}
-\caption{FedSafe-Fuse pipeline. \textbf{Top (green):} federated training --- each client trains locally, projects its gradient delta to a rank-$d$ subspace via FROP, and the server aggregates over $T$ rounds. \textbf{Middle (orange):} SACP calibration --- per-pixel non-conformity scores on a held-out set are split by Canny region into interior/boundary threshold pools. \textbf{Bottom (purple):} inference --- a new MRI/PET pair yields a fused image plus a calibrated uncertainty heatmap.}
-\label{fig:pipeline}
-\end{figure}
+\emph{Patient level (exact).} For patient $p$ and region $R$, let $s_p$ be the smallest $t$ such that a fraction $\geq 1-\beta$ of $\{r_i : i \in R \text{ in any slice of } p\}$ is $\leq t$, and let $\hat\tau=\hat q_\alpha(s_1,\dots,s_n)$ over $n$ calibration patients.
+\begin{proposition}
+If the calibration patients and a new patient are exchangeable, then with probability at least $1-\alpha$ the new patient has at least a fraction $1-\beta$ of its region-$R$ pixels inside $[f-\hat\tau, f+\hat\tau]$.
+\end{proposition}
+\begin{proof}
+By construction $s_{n+1}\le\hat\tau$ holds exactly when the covered fraction at $\hat\tau$ is $\geq 1-\beta$; the standard split-conformal argument~\cite{vovk2005alrw,lei2018distribution} gives $\Pr(s_{n+1}\le\hat\tau)\ge 1-\alpha$.
+\end{proof}
+The unit of exchangeability is the patient, so dependence between pixels, and between slices of one patient, is irrelevant. We use $\beta=0.10$ and report the guarantee per region (a union bound gives a joint statement).
 
-\subsection{Fusion backbone}
-\label{ssec:backbone}
+\emph{Pixel level (approximate).} Per-region thresholds $\hat\tau_R=\hat q_\alpha$ over all calibration pixels of region $R$ (Mondrian calibration~\cite{vovk2005alrw}). Pixels are dependent, so the nominal pixel coverage is \emph{not} guaranteed; we validate it empirically with a patient-cluster bootstrap. The baseline is one global threshold over all brain pixels.
 
-Each client deploys a compact fusion network that processes paired single-channel $128\!\times\!128$ inputs. Two modality-specific encoders are based on MobileNetV3-Small~\cite{howard2019mobilenetv3}; the first convolution is replaced to accept one input channel. MobileNetV3-Small downsamples by a factor of 32, so a $128\!\times\!128$ input yields a $4\!\times\!4$ feature map with 576 channels per modality. A $1\!\times\!1$ projection reduces this to 128 channels, and a parameter-free bilinear upsample brings the spatial resolution to $8\!\times\!8$ so that each modality contributes 64 spatial tokens.
+\subsection{Federated calibration with counts only}
+Client $k$ holds non-negative scores and exposes only its size $n_k$ and counts $c_k(t)=\#\{s\le t\}$. The server binary-searches the IEEE-754 bit pattern of $t$, which is order-preserving for non-negative floats, keeping $\sum_k c_k(\text{lo})<k\le\sum_k c_k(\text{hi})$. After at most 64 rounds of one integer per client the result equals the pooled order statistic exactly. With secure aggregation~\cite{bonawitz2017secagg} the server sees only $\sum_k c_k(t)$; what is revealed is the pooled rank of each probed threshold, and no individual score. CRC (below) federates trivially: clients send per-$\lambda$ sums of their losses.
 
-A shared 2-layer Transformer encoder (2 heads, embedding dimension 128, feed-forward dimension 256, GELU activation) operates on the concatenated 128 tokens with learned positional and modality embeddings. The per-modality halves of the output are averaged back to an $8\!\times\!8\!\times\!128$ feature map and fed to a four-stage bilinear-upsample convolutional decoder ($8\!\to\!16\!\to\!32\!\to\!64\!\to\!128$, with batch-normalisation and GELU at every block). A final $1\!\times\!1$ convolution and sigmoid produce the fused single-channel image in $[0, 1]$. The realised parameter count is 4,904,385 (4.9\,M).
-
-Training minimises a composite loss
+\subsection{Tumour-boundary risk control}
+Plain thresholds treat all pixels of a region alike, but the clinically important errors lie at lesion margins, which input-only regions need not capture. For calibration patient $p$ let $B_p$ be the tumour-boundary band (the expert segmentation dilated minus eroded by one pixel) and define the loss
 \begin{equation}
-\mathcal{L}(f, m, p) \;=\; \|f - r\|_1 + \beta \,(1 - \mathrm{SSIM}(f, r)),
-\label{eq:loss}
+L_p(\lambda)=\frac{1}{|B_p|}\,\Big|\{\,i\in B_p:\; r_i>\lambda\,\hat\tau_{R(i)}\}\Big|,
 \end{equation}
-where $f$ is the fused output, $m, p$ are the MRI and PET inputs, $r = 0.5(m + p)$ is the reference composite, and $\beta=1.0$ throughout this paper.
-
-\subsection{Federated training and FROP projection}
-\label{ssec:fipca}
-
-Training is distributed across K=3 simulated hospital clients with non-IID label skew (Dirichlet $\alpha{=}0.3$ over 11 organ classes). The central server executes T=50 communication rounds, with each client performing E=5 local epochs per round.
-
-For each round $t$, every client $k$ receives the current global state $\theta^{(t)}$, performs local training with Adam (lr~$=10^{-3}$, weight decay~$10^{-4}$, batch~16) on a fresh random sample of 40 examples per local epoch, and produces a local state $\theta^{(t)}_k$. The full weight delta $\delta_k = \theta^{(t)}_k - \theta^{(t)}$ is flattened to a vector in $\mathbb{R}^{N}$ where $N \approx 4.9\!\times\!10^6$.
-
-For communication efficiency and empirical inversion resistance, we replace transmission of the raw $\delta_k$ with an orthonormal rank-$d$ projection. A deterministic Gaussian matrix $G \in \mathbb{R}^{N\times d}$ generated from a shared seed is orthonormalised via QR decomposition, $G \to Q$, with $Q^\top Q = I_d$. We define the projection matrix $P = Q^\top \in \mathbb{R}^{d\times N}$. Each client transmits only the $d$-dimensional coefficient vector $c_k = P \delta_k$. The server averages coefficients, reconstructs in the original parameter space as $\bar\delta = P^\top \bar c$, and updates $\theta^{(t+1)} = \theta^{(t)} + \bar\delta$.
-
-Because $P$ has orthonormal rows, $\|P^\top P x\|_2 \leq \|x\|_2$ for any $x$, which guarantees numerical stability of the FedAvg update --- a property the alternative scaled-Gaussian construction does not satisfy. The trade-off is that the captured subspace has dimension $d \ll N$ so per-round signal is limited; see Section~\ref{ssec:results-ablation} for the rank ablation.
-
-The bytes transmitted per client per round under FROP are $4d$ (single-precision floats), independent of model size. Across $K$ clients the total upstream bytes per round are $4Kd$, which gives 192/384/768 bytes at $d \in \{16, 32, 64\}$.
-
-\noindent\textbf{Why error feedback cannot rescue quality (a negative result).} A natural attempt to recover the discarded signal is memory-compensated compression~\cite{stich2018sparsified}: each client accumulates the projection residual $e_k \leftarrow \delta_k - P^\top P \delta_k$ and adds it to the next round's delta before projecting. We find this provably inert under FROP: with a \emph{fixed} basis, the residual lies in the null space of $P$, so $P(\delta_k + e_k) = P\delta_k$ and the transmitted coefficients are unchanged (we verified payloads are identical to within $3\!\times\!10^{-6}$ floating-point noise). Resampling the basis each round from a shared seed makes the residual transmissible but renders the operator non-contractive, so the residual norm grows as $\|e_k\| \!\sim\! \|\delta_k\|\cdot 2N/d$ and the reconstructed update diverges (NaN within $10$--$30$ rounds, faster at higher $d$). The captured-energy fraction per round is $\!\sim\!d/N$, so the channel can touch only $1-(1-d/N)^T \!\approx\! 0.03\%$ of parameter-space energy at $d{=}32$ over $T{=}50$ rounds. Extreme gradient compression and fusion quality are therefore in fundamental tension under this regime; we frame fusion as the vehicle for the privacy and uncertainty contributions rather than as the headline objective.
-
-\subsection{Threat model and privacy semantics of FROP}
-\label{ssec:threat}
-
-\noindent\textbf{Threat model.} We consider an \emph{honest-but-curious} adversary --- the central FedAvg server, or any participating client --- that follows the protocol but tries to infer another client's private training images. The adversary observes every round's transmitted coefficient vector $c_k = P\delta_k \in \mathbb{R}^d$, the current global state $\theta^{(t)}$, and the architecture. Crucially, because $P$ is generated from a \emph{shared seed}, we grant the adversary exact knowledge of $P$ (the worst case). The adversary's goal is to reconstruct client $k$'s input images from $c_k$. Malicious parties that deviate from the protocol, membership-inference, and reconstruction from the final published model are out of scope; secure aggregation is orthogonal and composable with FROP.
-
-\noindent\textbf{What FROP does \emph{not} guarantee.} FROP is a low-rank compression-and-obfuscation mechanism, \emph{not} a differential-privacy mechanism. It injects no calibrated noise and carries no $(\varepsilon,\delta)$ bound; it must not be read as ``matching'' DP-SGD's formal guarantee. We compare FROP to DP-SGD on exactly two measurable axes --- empirical gradient-inversion (DLG) resistance and upstream bandwidth --- and reserve the formal $(\varepsilon,\delta)$ axis (Section~\ref{ssec:results-dp}) for DP-SGD alone.
-
-\noindent\textbf{Inversion analysis for a $P$-aware adversary.} Let $\delta_k \in \mathbb{R}^{N}$ be the true update and $c_k = P\delta_k$, with $P \in \mathbb{R}^{d\times N}$, $PP^\top = I_d$, and $d \le 64 \ll N \approx 4.9\times10^{6}$. The linear map $\delta \mapsto P\delta$ has null space $\mathcal{N}(P)$ of dimension $N-d \ge 4{,}904{,}321$. For any observed $c_k$ the set of consistent updates is the affine subspace $\{P^\top c_k + n : n \in \mathcal{N}(P)\}$; an adversary that knows $P$ can recover at best the minimum-norm point $\hat\delta_k = P^\top c_k$ (the row-space component), while the orthogonal component $(\mathbf{I}-P^\top P)\delta_k$ --- carrying a fraction $1-d/N \approx 1-6.5\times10^{-6}$ of the update's coordinates --- is annihilated by transmission and is unrecoverable from $c_k$ by \emph{any} algorithm, absent a generative prior over updates (which standard gradient inversion does not assume). Reconstructing the input is strictly harder than recovering $\delta_k$: the attacker must additionally invert the non-linear gradient-to-input map, now from only a $d$-dimensional observable rather than the full $N$-dimensional gradient that even unprotected DLG requires --- a $\sim\!10^{5}$-fold reduction in the observed signal. Our DLG evaluation (Section~\ref{ssec:results-privacy}) already realises this $P$-aware adversary: the attacker is handed the exact minimum-norm gradient estimate $P^\top c_k = P^\top P\,\delta_k$ and runs DLG against it, yet reconstructs at SSIM~$\le 0.013$. We therefore claim only \emph{matched empirical DLG resistance under this threat model}, not matched formal privacy.
-
-\subsection{Spatially-Aware Conformal Prediction}
-\label{ssec:sacp}
-
-After federated training converges, a 15\% held-out calibration set (never seen during training) is used to compute per-pixel non-conformity scores
-\begin{equation}
-s(i, j) \;=\; |f(i, j) - r(i, j)|.
-\label{eq:nonconformity}
-\end{equation}
-For each calibration sample we apply Canny edge detection~\cite{canny1986edge} (low~$=50$, high~$=100$) to the reference composite $r$ followed by a single dilation with a $3\!\times\!3$ kernel, producing a binary \textit{boundary mask}; the complement defines the \textit{interior mask}. Non-conformity scores from all calibration samples are partitioned into an interior pool and a boundary pool. For each target coverage $1 - \alpha$, we take the empirical $(1-\alpha)$-quantile of each pool separately:
-\begin{align}
-\tau_{\mathrm{int}}^{\alpha} &= \mathrm{Quantile}_{1-\alpha}\bigl(\{s(i,j) : (i,j) \in \mathrm{interior}\}\bigr), \\
-\tau_{\mathrm{bnd}}^{\alpha} &= \mathrm{Quantile}_{1-\alpha}\bigl(\{s(i,j) : (i,j) \in \mathrm{boundary}\}\bigr).
-\end{align}
-At inference time, a pixel is flagged as \textit{uncertain} when its non-conformity score exceeds its regional threshold. By the standard split-conformal argument, the empirical coverage on the test split is asymptotically equal to $1 - \alpha$ within each region.
+which is non-increasing in $\lambda$ and bounded by 1, where $\hat\tau_{R(i)}$ is the pixel-level threshold of $i$'s region. CRC~\cite{angelopoulos2022crc} selects $\hat\lambda=\inf\{\lambda: \tfrac{n}{n+1}\hat R_n(\lambda)+\tfrac{1}{n+1}\le\alpha\}$ with $\hat R_n$ the mean calibration loss, which guarantees $\mathbb{E}[L_{n+1}(\hat\lambda)]\le\alpha$ for a new exchangeable patient. The deployed interval $f\pm\hat\lambda\hat\tau_{R(i)}$ uses inputs only; segmentation labels are needed only at calibration.
 
 % =========================================================
 \section{Experimental Setup}
 \label{sec:setup}
 
-\subsection{Dataset and partitioning}
-We use MedMNIST OrganAMNIST~\cite{yang2023medmnistv2}, an 11-class abdominal CT benchmark (34{,}561 train / 6{,}491 val / 17{,}778 test, originally $28\!\times\!28$). Each slice is upsampled to $128\!\times\!128$ and paired with a synthetic MRI-like / PET-like representation: the MRI-like channel applies CLAHE contrast enhancement, and the PET-like channel applies a $\gamma{=}1.6$ gamma compression followed by a $\sigma{=}1.2$ Gaussian blur. This synthetic-pairing protocol follows the fusion literature's standard practice for controlled multi-modal experiments. A 15\% random subset of the training split is held out as the SACP calibration set. The remaining 85\% is partitioned across K=3 clients via per-class Dirichlet sampling with $\alpha{=}0.3$, producing strong organ-class skew across clients (client sizes 7{,}714 / 15{,}445 / 6{,}218 after the 15\% calibration hold-out).
+\noindent\textbf{Data.} BraTS~2020 training data~\cite{menze2015brats,bakas2017brats} as redistributed on Kaggle (\url{kaggle.com/datasets/awsaf49/brats20-dataset-training-validation}). Of 369 patients, 365 have at least one axial slice with $\geq 1\,\%$ tumour; we keep those 17{,}568 slices. Each sequence volume is clipped to its $[0.5, 99.5]$ brain-voxel percentiles, scaled to $[0,1]$ (background exactly 0), and resized to $128{\times}128$.
 
-We additionally evaluate on \textbf{real multi-modal BraTS~2020}~\cite{menze2015brats,bakas2017brats} (T1 as the structural channel, T2 as the complementary channel; 365 cases, 17{,}568 axial slices with $\geq$1\% tumour coverage, normalised to $[0,1]$ at $128\!\times\!128$). The non-IID partition follows the clinical HGG/LGG grade split across K=3 clients (client~0: 146 HGG; client~1: 98 HGG + 13 LGG; client~2: 54 LGG). To fit the compute budget we run BraTS at small scale (12 cases per client; disclosed), with a disjoint set of held-out cases reserved for SACP calibration and coverage evaluation.
+\noindent\textbf{Federated split (patient level).} Patients are partitioned by grade into $K{=}3$ non-IID clients: client~0 is HGG-only (146 patients), client~1 mixed (98 HGG + 13 LGG), client~2 LGG-only (54). Within each client, patients are split 65/10/25\,\% into train (95/72/35), validation (15/11/5; learning curves only) and calibration (36/28/14). A further 54 patients (45 HGG, 9 LGG) form a central test set. No patient appears in two splits.
 
-\subsection{Federated configuration}
-K=3 clients, T=50 communication rounds, E=5 local epochs per round, batch size 16, Adam optimiser, learning rate $10^{-3}$, weight decay $10^{-4}$. To fit Colab Free's $\sim$4-hour T4 session, each client samples 40 fresh training examples per local epoch (cf.~Methods); under this cap, the full 3-method pipeline (B1, B2, ours) completes in $\sim$20\,min wall-clock on a single T4 GPU. Fusion-quality metrics (SSIM, PSNR) are reported as mean$\pm$std over 5 random seeds \{42,1,2,3,4\}; the privacy, DP-accounting, ablation, and coverage analyses use the seed-42 checkpoints.
+\noindent\textbf{Training.} $T{=}30$ rounds, one local epoch of 1{,}000 random slices per client per round, batch 16, Adam (lr $10^{-3}$); centralised: 3{,}000 slices per round. The protocol was fixed in advance and the round-30 model is always used, with no model selection. Five seeds $\{42,1,2,3,4\}$. A round takes $\approx 32$\,s on a Colab T4; FedAvg uploads 3.8\,MB per round (three clients). Baselines: zero image, copy of T2, $\tfrac12$(T1+T2), and a least-squares fit $a\text{T1}+b\text{T2}+c$ on 60 training patients.
 
-\subsection{Baselines}
-\textbf{B1: FedAvg + DP-SGD} -- per-batch gradients are clipped to L2 norm $C{=}1.0$ and perturbed with isotropic Gaussian noise of standard deviation $\sigma C$ with $\sigma{=}0.5$. We report both the empirical privacy (via DLG) and a formal $(\varepsilon, \delta)$ bound computed with a R\'enyi-DP accountant for the sub-sampled Gaussian mechanism~\cite{mironov2017renyi,mironov2019renyi} (Section~\ref{ssec:results-dp}).
-
-\noindent\textbf{B2: FedAvg + IFCNN}~\cite{zhang2021ifcnn} -- the original IFCNN baseline (316{,}545 parameters) trained with vanilla FedAvg.
-
-\subsection{Evaluation}
-Fusion quality is measured by SSIM (primary) and PSNR against the reference composite $r$. Privacy is measured both by reconstruction SSIM of a DLG attack --- on a tractable surrogate classifier \emph{and} on the full 4.9\,M-parameter backbone --- and by a formal $(\varepsilon,\delta)$ bound for the DP-SGD baseline. Communication cost is the total upstream bytes per round, measured directly from the per-client transmitted payload sizes. SACP is evaluated by empirical coverage rate and average prediction-interval width on unseen test samples from each dataset.
+\noindent\textbf{Conformal evaluation.} All conformal results use the 5 FedAvg models; we report mean (and std) over seeds. $\alpha\in\{0.05,0.10,0.15\}$, $\beta=0.10$, CRC at $\alpha=0.10$ on the grid $\lambda\in\{0.01,\dots,10\}$. Calibration schemes: \emph{pooled} (all 78 calibration patients, computed federatedly) and \emph{per-client}. Patient-level coverage is reported with Clopper--Pearson intervals~\cite{clopper1934}; pixel coverage with a patient-cluster bootstrap (2{,}000 resamples). Input degradation applies Gaussian blur ($\sigma_b$) and additive noise ($\sigma_n$) to T1 and T2 inside the brain mask, with the same noise realisation for every seed.
 
 % =========================================================
-\section{Results and Discussion}
+\section{Results}
 \label{sec:results}
 
-\subsection{Federated fusion quality and communication cost}
+\input{tables/r2_quality}
 
-Table~\ref{tab:main_results} reports the final-round results across the three federated methods (mean$\pm$std over 5 seeds). The non-private IFCNN+FedAvg baseline (B2) reaches SSIM $0.973{\pm}0.014$ and PSNR $34.2{\pm}1.5$\,dB on the 128-sample held-out test set; this is the upper bound achievable in this compute budget. DP-SGD (B1) on FedSafe-Fuse stalls at SSIM $0.234{\pm}0.002$ because the noise scale needed to block gradient inversion (Section~\ref{ssec:results-privacy}) destroys the per-batch signal. FedSafe-Fuse with FROP reaches SSIM $0.239{\pm}0.000$, marginally above DP-SGD, while transmitting only 384 bytes/round; its seed-to-seed variance is negligible ($<10^{-3}$), consistent with the near-constant output the rank-32 bottleneck induces.
+\subsection{The predictor: good but imperfect}
+Table~\ref{tab:quality} shows that FedAvg matches centralised training (MAE$_\text{brain}$ $0.119$ vs.\ $0.117$) and clearly beats every trivial baseline: the best of these, $\tfrac12$(T1+T2), has MAE$_\text{brain}$ $0.159$ and SSIM$_\text{brain}$ $0.368$ against $0.659$. Validation loss had flattened by round 25. The predictions are visibly smoothed, and the largest errors sit in FLAIR-hyperintense lesion tissue (Fig.~\ref{fig:example}). This is the regime in which calibrated error bars matter.
 
-\input{tables/main_results}
-
-Figure~\ref{fig:convergence} shows the per-round eval-set SSIM trajectories. IFCNN converges rapidly within the first 5 rounds and remains near 0.98 for the rest of training. The two privacy-preserving variants plateau early and do not visibly improve over 50 rounds, which is consistent with the limited per-round signal that survives either Gaussian noise (B1) or rank-32 projection (FROP).
-
-\begin{figure}[t]
+\begin{figure*}[t]
 \centering
-\includegraphics[width=\columnwidth]{../figures/convergence_curves.png}
-\caption{Per-round eval-set loss (left) and SSIM (right) for the three federated methods. IFCNN+FedAvg converges within 5 rounds. FedSafe-Fuse with DP-SGD and FROP both plateau early; FROP achieves slightly higher SSIM than DP-SGD at four orders of magnitude lower communication cost.}
-\label{fig:convergence}
-\end{figure}
+\includegraphics[width=\textwidth]{../figures/phase4_conformal_example.png}
+\caption{Test patient (FedAvg seed 42, clean inputs, pooled calibration, $\alpha{=}0.10$). From left: FLAIR target; prediction from T1+T2; absolute error; input-only regions (background / interior / boundary); pixel-level half-width $\hat\tau_{R(i)}$; uncovered pixels (bright) over the tumour-boundary band. Errors concentrate in lesion tissue, not at the input-gradient boundary, which mostly follows the brain outline.}
+\label{fig:example}
+\end{figure*}
 
-\subsection{Real multi-modal BraTS results}
-\label{ssec:results-brats}
+\input{tables/r2_patient}
 
-To move beyond synthetic MedMNIST pairing, we repeat the federated protocol on real BraTS~2020 T1/T2 slices. Table~\ref{tab:brats_results} reports the final-round results. The non-private IFCNN+FedAvg model converges to \textbf{SSIM~$0.996{\pm}0.001$ and PSNR~$40.9{\pm}1.6$\,dB} on real multi-modal data (mean$\pm$std over 5 seeds), rising from $\sim$0.14 at round~1 to $\sim$0.99 by round~20 --- direct evidence that the federated fusion task and pipeline are sound on genuine clinical imagery, not an artefact of the synthetic pairing. As on MedMNIST, FedSafe-Fuse with FROP holds the extreme-compression operating point (384 bytes/round) at the expected fusion-quality cost.
+\subsection{Exact patient-level coverage}
+Table~\ref{tab:patient} confirms the patient-level guarantee at every $\alpha$: e.g.\ at $\alpha{=}0.10$, $94\,\%$ of test patients have $\geq 90\,\%$ of their brain pixels covered, and every Clopper--Pearson interval contains the target. The cost is width: $\hat\tau\approx0.34$ on a $[0,1]$ intensity scale for the brain region. Because the guarantee must hold for 90\,\% of a patient's pixels, including lesion pixels with large errors, the bound is honest but loose.
 
-\input{tables/brats_results}
+\subsection{Federated vs.\ per-client calibration}
+The count-only protocol reproduced the pooled threshold bit-for-bit in all 135 checks (5 seeds $\times$ 3 input conditions $\times$ 3 regions $\times$ 3 $\alpha$), using at most 62 rounds. Table~\ref{tab:schemes} shows where pooling matters. The two larger clients obtain thresholds and coverage close to pooled. Client~2 (14 LGG patients) can calibrate alone at $\alpha{=}0.10$ only because $k=n=14$: its threshold is the largest calibration score, so its intervals are 40\,\% wider than pooled ($0.479$ vs.\ $0.342$), i.e.\ pooled intervals are 29\,\% narrower, and at $\alpha{=}0.05$ it cannot calibrate at all ($k>n$, $\hat\tau=\infty$). We did \emph{not} observe the grade-shift failure one might expect: HGG-only calibration covers the LGG test patients as well as pooled calibration does (8 of 9 in every scheme). With 9 LGG test patients the data cannot resolve differences of this size.
 
-This result is the key evidence for our reframing: the limiting factor on the private model's fusion quality is the rank-$d$ communication bottleneck (Section~\ref{ssec:fipca}), not a deficiency of the fusion task, the backbone, or the data.
+\input{tables/r2_schemes}
 
-\subsection{Privacy: gradient-inversion attack}
-\label{ssec:results-privacy}
+\subsection{Does an input-defined spatial split help?}
+Table~\ref{tab:mondrian} compares per-region pixel thresholds with one global brain threshold. With gradient regions, the boundary threshold is \emph{smaller} than the interior one ($0.244$ vs.\ $0.274$), and the brain-average half-width is unchanged ($0.75\cdot0.274+0.25\cdot0.244=0.267$ vs.\ global $0.268$). Splitting merely redistributes width. The reason is visible in Fig.~\ref{fig:example}: the strongest input gradients lie on the brain outline, which the masked model reproduces well, while the large errors are lesion hyperintensities in the ``interior''. Only 30--33\,\% of tumour-boundary pixels fall in the gradient boundary region (72--74\,\% for Canny, whose boundary region however covers 58--63\,\% of the brain). All pixel-level coverages are above nominal ($0.93$--$0.95$ at a target of $0.90$). This is consistent with pixel coverage carrying no guarantee and with the calibration and test patients coming from slightly different pools. We therefore do not claim that input-defined spatial splitting improves efficiency; the clinically relevant spatial structure is addressed by risk control instead.
 
-\noindent\textbf{Surrogate attack.} We implement the DLG attack~\cite{zhu2019dlg} against a 15{,}226-parameter classifier surrogate operating on a synthetic $32\!\times\!32$ grayscale image of two Gaussian blobs. The attacker observes the (possibly protected) gradient and optimises a dummy input + soft-label pair to match it under LBFGS for 120 iterations. Reconstruction quality is shown in Table~\ref{tab:attack}.
+\input{tables/r2_mondrian}
 
-\input{tables/attack}
+\subsection{Tumour-boundary risk control}
+Without risk control ($\lambda{=}1$), the per-region thresholds leave $10.9\,\%$ of tumour-boundary pixels uncovered on clean inputs and $14.3\,\%$ under strong degradation, above the $10\,\%$ target (Table~\ref{tab:crc}). CRC with pooled calibration selects $\hat\lambda\approx1.1$--$1.2$ and brings the realised risk to $0.076$--$0.083$, without using any labels at test time. Per-client CRC is again noisier. Client~1's realised risk is $0.103{\pm}0.008$, slightly above $\alpha$; this is allowed because the guarantee holds in expectation over calibration sets, not for every realisation.
 
-Raw gradients leak the input image with SSIM 0.9999 and PSNR 74.3\,dB --- effectively perfect reconstruction. Both privacy mechanisms destroy DLG: DP-SGD produces reconstruction SSIM~$\approx 4 \times 10^{-4}$ and FROP produces SSIM~$\approx 0.013$. Both values are far below the visual-recognition threshold of $\sim$0.5.
+\input{tables/r2_crc}
 
-\noindent\textbf{Full-backbone attack: an honest reading.} We also run DLG directly against the deployed 4.9\,M-parameter FedSafe-Fuse model, reconstructing both input modalities at batch~1 from a real MedMNIST pair (Table~\ref{tab:dlg_full}). Because the MobileNetV3 backbone uses activations and a fused attention kernel whose second derivatives are unavailable, we attack a variant with identical trained weights but smooth activations (Hardswish$\to$SiLU, Hardsigmoid$\to$Sigmoid) and the math attention backend; smoothing can only \emph{aid} an attacker, so this variant is a conservative proxy for the deployed model. The finding is that \emph{even with raw, unprotected gradients} the full model barely reconstructs (mean SSIM~$\approx$~0.06, versus 0.9999 on the surrogate). We read this plainly: at batch~1 the deployed model is \emph{not} in the easily-invertible regime, so the protection is not what stops leakage there. The regime where naive DLG does leak --- and where the protection is therefore meaningful --- is the small-model/small-batch surrogate, which is exactly the case our surrogate exercises. Table~\ref{tab:leakage_proxies} reports two \emph{heuristic} proxies (\emph{not} a formal bound) consistent with this reading: the FROP captured-energy fraction ($\!\sim\!\sqrt{d/N}$) and the DP-SGD gradient SNR ($\!\sim\!1/(\sigma\sqrt{N})$) both \emph{shrink} as the parameter count $N$ grows --- by $24\times$ and $116\times$ respectively from surrogate to full backbone --- suggesting that inversion does not become easier on the larger model. We do not claim this as a guarantee; a formal reconstruction bound for the full backbone is out of scope.
+\subsection{Input degradation}
+When calibration patients are degraded in the same way as test inputs, coverage stays close to its clean value and the half-widths grow with degradation: boundary $0.244\to0.265\to0.282$, interior $0.274\to0.290\to0.299$ (Table~\ref{tab:degradation}). Applying clean thresholds to degraded inputs breaks the exchangeability assumption, and coverage falls to $0.867$/$0.882$ under strong degradation, with bootstrap intervals below $0.90$. In practice the guarantee is only as good as the match between calibration and deployment acquisition; monitoring input quality and recalibrating per acquisition condition is required.
 
-\input{tables/dlg_full}
-\input{tables/leakage_proxies}
+\input{tables/r2_degradation}
 
-Figure~\ref{fig:attack_recon} shows the qualitative reconstructions. Under DLG in our threat model the empirical outcome of FROP and DP-SGD is indistinguishable to the adversary, while their bandwidth profiles differ by five orders of magnitude.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../figures/attack_reconstructions.png}
-\caption{DLG reconstruction of the surrogate input image under three protection regimes. Without protection the original image is recovered exactly. Both DP-SGD and FROP prevent reconstruction.}
-\label{fig:attack_recon}
-\end{figure}
-
-Figure~\ref{fig:tradeoff} plots reconstruction SSIM (empirical-inversion axis) against bytes per round (efficiency axis) on a log scale. The desired bottom-left corner --- strong empirical inversion resistance and low bandwidth --- is uniquely occupied by FedSafe-Fuse + FROP.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../figures/privacy_vs_comm.png}
-\caption{Privacy vs.~communication trade-off. The horizontal axis is the per-round upstream payload (log scale); the vertical axis is the DLG reconstruction SSIM (lower~$=$~stronger empirical inversion resistance). FROP matches DP-SGD's empirical DLG resistance at roughly five orders of magnitude lower bandwidth.}
-\label{fig:tradeoff}
-\end{figure}
-
-\subsection{Formal differential-privacy accounting}
-\label{ssec:results-dp}
-
-To make the privacy comparison analytical rather than purely empirical, we compute a formal $(\varepsilon, \delta)$ bound for the DP-SGD baseline with a R\'enyi-DP accountant for the sub-sampled Gaussian mechanism~\cite{mironov2017renyi,mironov2019renyi}, composed over the 750 noisy gradient steps each client performs ($T{=}50$ rounds $\times$ $E{=}5$ epochs $\times$ 3 minibatches), with fixed-size batches accounted as Poisson sub-sampling at rate $q = b/N$. Table~\ref{tab:dp_accounting} reports the result at $\delta = 10^{-5}$.
-
-\input{tables/dp_accounting}
-
-Heavy sub-sampling amplification ($q \!\approx\! 0.002$ over only 750 steps) keeps the guarantee bounded, but at $\sigma{=}0.5$ it is \emph{weak}: the worst-case client attains only $\varepsilon \approx 6.2$. Crucially, buying even this weak formal guarantee cost 59\,MB/round and collapsed fusion utility to SSIM~0.23. FROP attains the same empirical DLG protection (SSIM~$\leq$~0.013) at 384\,bytes/round. We stress the asymmetry of the comparison: only DP-SGD carries the analytical $(\varepsilon,\delta)$ guarantee; FROP is compared solely on the empirical DLG and bandwidth axes, where it matches DP-SGD's inversion resistance at a fraction of the cost. The accountant is released as a standalone, dependency-light script for reproducibility.
-
-\subsection{SACP coverage validation}
-\label{ssec:results-sacp}
-
-SACP thresholds are calibrated on the 5{,}184 MedMNIST calibration samples using the FedSafe-Fuse + FROP (rank-32) final checkpoint and evaluated on the first 256 samples of the MedMNIST test split. Table~\ref{tab:coverage} reports per-region empirical coverage at three target levels $\alpha \in \{0.05, 0.10, 0.15\}$.
-
-\input{tables/coverage}
-
-All six measured coverages meet or slightly exceed their target, confirming the split-conformal validity of the regional thresholds. We quantify the finite-sample uncertainty with exact Clopper--Pearson 95\% CIs on each coverage; these are sub-$10^{-3}$ in half-width because each region pools $\sim$2$\times$10$^6$ test pixels (e.g., interior at $\alpha{=}0.05$: $[0.9689,0.9694]$; boundary at $\alpha{=}0.05$: $[0.9596,0.9601]$). That pixel count overstates the effective sample size, however, since pixels within an image are spatially correlated. We therefore also report an image-level bootstrap 95\% CI, resampling the 256 test images, which is roughly two orders of magnitude wider yet still meets target --- e.g., interior at $\alpha{=}0.10$ is $[0.924,0.951]$ (vs.\ Clopper--Pearson $[0.927,0.928]$) and boundary at $\alpha{=}0.05$ is $[0.951,0.961]$. On this near-constant FROP checkpoint the interior intervals are \emph{wider} than the boundary intervals: the residual is largest exactly where the reference is furthest from the model's near-constant output, which is in tissue interiors rather than at edges.
-
-\noindent\textbf{Coverage on real data, and the predicted width inversion.} We repeat the SACP calibration on the converged real-data BraTS IFCNN model, calibrating and evaluating on disjoint held-out BraTS slices (Table~\ref{tab:brats_coverage}). Coverage again meets target at all three levels on real multi-modal data, and remains on target under the wider image-level bootstrap 95\% CIs (e.g., interior at $\alpha{=}0.05$: $[0.945,0.953]$; boundary at $\alpha{=}0.05$: $[0.947,0.952]$). With a well-trained model the width ordering \textbf{inverts as predicted}: boundary intervals (0.058--0.082) are now wider than interior intervals (0.0002--0.027). This confirms that SACP tracks model uncertainty rather than image content --- a near-constant model is uncertain in interiors, whereas an accurate model is uncertain at the high-gradient boundaries clinicians care about most.
-
-\input{tables/brats_coverage}
-
-Figure~\ref{fig:uncertainty} shows four representative test cases. The fused output is near-uniform (a direct consequence of the rank-32 FROP bottleneck during training); the residual map is correspondingly bright; the binary uncertain-pixel overlay highlights pixels whose non-conformity score exceeds the calibrated regional threshold at $\alpha = 0.10$.
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../figures/uncertainty_heatmaps.png}
-\caption{Qualitative SACP outputs on four MedMNIST test samples. From left to right: MRI input, PET input, FedSafe-Fuse fused output, per-pixel residual map, and overlay of uncertain pixels (those whose non-conformity exceeds the regional $\alpha{=}0.10$ threshold).}
-\label{fig:uncertainty}
-\end{figure}
-
-\subsection{FROP rank ablation}
-\label{ssec:results-ablation}
-
-Table~\ref{tab:ablation_rank} sweeps the FROP rank $d$ through the proposal's prescribed values $\{16, 32, 64\}$, holding all other settings constant (T=25 to fit the ablation phase budget). Figure~\ref{fig:ablation} visualises the trade-off.
-
-\input{tables/ablation_rank}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{../figures/ablation_fipca_rank_v2.png}
-\caption{FROP rank ablation. Within this training schedule the final SSIM is flat across ranks (the model has not escaped its near-constant output regime), so rank effectively only controls communication cost. Even at $d{=}64$, FedSafe-Fuse + FROP transmits 77{,}000$\times$ fewer bytes per round than DP-SGD.}
-\label{fig:ablation}
-\end{figure}
-
-The headline observation is that final SSIM is constant ($\Delta \approx 2 \times 10^{-4}$, well within stochastic noise) across the three ranks while communication cost grows linearly. Under this training schedule, rank therefore acts as a pure communication knob with no quality penalty. This is consistent with the interpretation that the fusion backbone has not yet escaped its near-constant initialisation regime; longer training, or coarser-to-fine schedules that increase $d$ over rounds, are natural future directions.
+\subsection{Negative result: random-projection update compression}
+\label{ssec:frop}
+An earlier version of this work proposed compressing each client's weight delta by a fixed random orthonormal projection to $d{=}32$ coefficients (``FROP''). With a fixed basis $P\in\mathbb{R}^{d\times N}$, every aggregated update lies in the row space of $P$, so after any number of rounds the global model is the initialisation plus a $d$-dimensional perturbation. Here $d/N\approx 6.5\times10^{-6}$ for the 4.9\,M-parameter backbone used then. Our logs confirm that this model does not train: evaluation SSIM was $0.23936$ at round 1 and $0.23936$ at round 50, and the same compressor applied to IFCNN moved SSIM from $0.239$ to $0.234$. The implementation also projected BatchNorm running statistics, freezing them at initialisation; this is fixed in the released code. Its empirical resistance to gradient inversion was therefore that of a client transmitting almost nothing, and compression alone is known to give a false sense of security~\cite{yue2023obfuscation}. We withdraw all privacy and communication claims for it. This paper claims no privacy property beyond the data locality of federated training.
 
 \subsection{Limitations}
 \label{ssec:limitations}
-
-We highlight the remaining limitations transparently.
-
-\textbf{(L1) Random-projection FROP.} The proposal describes a data-aware Federated Incremental PCA. We implement a deterministic orthonormal random projection that preserves the communication-cost and privacy-against-DLG properties of FROP but is not data-aware. As Section~\ref{ssec:fipca} shows, neither error feedback nor basis resampling recovers the discarded signal within this rank-$d$ regime; a genuinely data-aware incremental-PCA basis that concentrates the gradient energy into the transmitted subspace is the principled path to reconciling compression with quality, and remains future work.
-
-\textbf{(L2) Extreme-compression quality cost.} The private FedSafe-Fuse + FROP configuration does not itself produce high-fidelity fusion. Its value is that it matches DP-SGD's empirical DLG resistance at roughly five orders of magnitude lower upstream bandwidth (a $\compressratio$ byte reduction at rank-32) --- an inversion-resistance-per-byte statement, not a fusion-quality one. We have therefore positioned fusion as the vehicle for the privacy and uncertainty contributions, supported by the converged non-private results on both MedMNIST ($0.973{\pm}0.014$) and real BraTS ($0.996{\pm}0.001$).
-
-\textbf{(L3) Small-scale evaluation.} The fusion-quality results in Tables~\ref{tab:main_results} and~\ref{tab:brats_results} are reported as mean$\pm$std over 5 seeds \{42,1,2,3,4\} on both datasets; the DLG, DP-accounting, rank-ablation, and SACP-coverage results are computed on the seed-42 checkpoints. To fit the Colab-Free compute budget the BraTS run uses 12 cases per client, so full-cohort BraTS training remains a natural next step.
+\textbf{(L1) Scope.} One dataset, 2D slices, tumour-bearing slices only, and one predictor; the 54-patient test set has only 9 LGG patients. \textbf{(L2) Width.} Patient-level half-widths of $\approx0.34$ are wide; a stronger predictor or a locally adaptive score (e.g.\ normalised by an ensemble spread) should tighten them without affecting validity. \textbf{(L3) Exchangeability.} All guarantees assume calibration and test patients are exchangeable; Table~\ref{tab:degradation} shows the failure when acquisition differs. \textbf{(L4) Federation is simulated} in one process; secure aggregation is assumed, not implemented, and the counts at probed thresholds reveal pooled ranks. \textbf{(L5) Task framing.} Predicting a held-out sequence is closer to cross-sequence synthesis than to classical fusion, which has no ground truth; we chose it precisely because it gives the conformal score a meaning. No reader study assesses clinical usefulness.
 
 % =========================================================
-\section{Conclusion and Future Work}
+\section{Conclusion}
 \label{sec:conclusion}
 
-We presented FedSafe-Fuse, a federated framework contributing an orthonormal rank-$d$ gradient projection (FROP) for communication-efficient, empirically inversion-resistant updates and Canny-region-aware split conformal prediction for pixel-level uncertainty, demonstrated through a lightweight fusion backbone. Across synthetic MedMNIST and real multi-modal BraTS~2020 in a non-IID K=3 setting, FROP reduces upstream communication from 59.18\,MB/round (DP-SGD) to 384 bytes/round at rank~32 while matching DP-SGD's \emph{empirical} DLG resistance (reconstruction SSIM~$\leq$~0.013) under a stated honest-but-curious, basis-aware threat model --- without itself being a formal privacy mechanism; the analytical $(\varepsilon,\delta)$ guarantee is reported for DP-SGD alone. We corroborate the empirical picture with a full-backbone DLG analysis --- which shows the deployed model barely leaks even unprotected at batch~1 --- and formal R\'enyi-DP accounting ($\varepsilon \approx 6.2$ for the noise baseline). SACP achieves calibrated coverage on both datasets, with the clinically expected wider-at-boundary intervals emerging once the model is well trained. We also reported a negative result --- error feedback cannot rescue fusion quality under a fixed or randomly-resampled projection basis --- that sharpens the open problem.
-
-The central open problem is therefore to reconcile extreme gradient compression with fusion quality. A data-aware incremental-PCA basis that concentrates each round's gradient energy into the transmitted subspace --- rather than a fixed random one --- is the principled next step, as our information-bottleneck analysis ($\sim\!d/N$ energy per round) makes precise. Multi-seed and full-cohort BraTS evaluation would further strengthen the clinical case.
+For federated prediction of a held-out MRI sequence, distribution-free uncertainty is achievable and useful when its guarantees are stated at the right level. The exact patient-level guarantee holds and does not require pixel independence. Federated calibration with counts only reproduces pooled thresholds bit-for-bit and spares small sites wide or infeasible intervals. Conformal risk control brings the miss rate at tumour margins below target using labels only at calibration. Two cautions emerged: input-defined spatial regions do not localise the model's errors, and guarantees fail when deployment inputs are degraded relative to calibration. Locally adaptive scores, full 3D evaluation and federated recalibration under acquisition shift are the natural next steps.
 
 % =========================================================
 \section*{Acknowledgements}
 This work was developed with the assistance of Claude (Anthropic), a generative AI tool, used for structuring drafts, formulating implementation steps, and formatting. All technical content, experimental results, and the final manuscript were reviewed, validated, and edited by the author, who takes full responsibility for the accuracy, originality, and academic integrity of this work.
 
-The source code, trained checkpoints, per-pixel conformity scores, the standalone DP accountant, and reproduction notebooks for every figure and table in this paper are available at \url{https://github.com/fyakkan/fedsafe-fuse}.
+Code, notebooks (data extraction, federated training, conformal calibration), unit tests and the CSV files behind every table are available at \url{https://github.com/fyakkan/fedsafe-fuse}; the tables are generated from those CSVs by a script.
 
 % =========================================================
 \bibliographystyle{IEEEtran}

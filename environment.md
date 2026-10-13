@@ -28,5 +28,6 @@ Python 3.10 (Colab default as of 2026-05). Pin versions in `requirements.txt`; C
 
 ## Known constraints
 
-- BraTS 2020 retrieved from a **Kaggle redistribution**, not the official Synapse release. Disclosed in paper Methods. Citations: Menze 2015, Bakas 2017.
-- DLG attack (Zhu et al. 2019) run against a **small encoder-only surrogate at batch size 1** rather than the full 8M-param fusion model. Disclosed in paper privacy section.
+- BraTS 2020 retrieved from a **Kaggle redistribution** (`awsaf49/brats20-dataset-training-validation`), not the official Synapse release. Stated in the paper's Experimental Setup. Citations: Menze 2015, Bakas 2017.
+- Round-2 runs (notebooks 13–15) use seeds {42, 1, 2, 3, 4}; protocol fixed in advance, no model selection.
+- Earlier-version items (DLG surrogate, 4.9M-parameter MobileNetV3 backbone, FROP, batch-mean "DP-SGD") are archived and no longer part of the paper.
